@@ -1,60 +1,82 @@
 // Lease Leverage curve engine.
-// Presentation math only. No OAuth, ArcGIS, DOM, process, or annotation logic lives here.
+// Curve geometry only. No OAuth, ArcGIS, DOM, process, or annotation logic.
 
 const clamp01=t=>Math.max(0,Math.min(1,t));
 const lerp=(a,b,t)=>a+(b-a)*t;
 
-function curveLevels(){
+function gaussian(x,mu,sigma){
+  const z=(x-mu)/sigma;
+  return Math.exp(-0.5*z*z);
+}
+
+function smoothstep(t){
+  t=clamp01(t);
+  return t*t*(3-2*t);
+}
+
+function levels(){
   const rawT=DATA.map(d=>d.tenant).filter(Number.isFinite);
   const rawL=DATA.map(d=>d.landlord).filter(Number.isFinite);
+
+  const tMin=Math.min(...rawT),tMax=Math.max(...rawT);
+  const lMin=Math.min(...rawL),lMax=Math.max(...rawL);
+
   return {
-    tStart:rawT[0] ?? Math.min(...rawT),
-    tPeak:Math.max(...rawT),
-    tEnd:rawT.at(-1) ?? Math.min(...rawT),
-    lStart:rawL[0] ?? Math.max(...rawL),
-    lLow:Math.min(...rawL),
-    lEnd:rawL.at(-1) ?? Math.max(...rawL)
+    tenantEarly:rawT[0],
+    tenantPeak:tMax,
+    tenantLate:tMin+(tMax-tMin)*0.10,
+
+    landlordEarly:rawL[0],
+    landlordTrough:lMin,
+    // Late landlord deliberately recovers above late tenant.
+    landlordLate:Math.max(rawL.at(-1),lMin+(lMax-lMin)*0.82)
   };
 }
-function easeInOutCubic(t){
-  t=clamp01(t);
-  return t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
-}
-function curveValueAt(date){
-  const win=windowBounds(),lev=curveLevels();
+
+function normalizedTime(date){
   const x0=+DATA[0].date,x1=+DATA.at(-1).date;
-  const ws=+win.start,we=+win.end,z=+date;
+  return clamp01((+date-x0)/(x1-x0));
+}
 
-  const tenantStart=lev.tStart;
-  const tenantHigh=lev.tPeak*0.94;
-  const tenantEnd=lev.tEnd;
-  const landlordStart=lev.lStart;
-  const landlordLow=lev.lLow*1.035;
-  const landlordEnd=lev.lEnd;
+function curveCenterAndWidth(){
+  const win=windowBounds();
+  const x0=+DATA[0].date,x1=+DATA.at(-1).date;
+  const ws=(+win.start-x0)/(x1-x0);
+  const we=(+win.end-x0)/(x1-x0);
 
-  let tenant,landlord;
+  // Window only positions the center/scale of ONE continuous curve.
+  // It does NOT create separate before/inside/after segments.
+  const center=(ws+we)/2;
+  const width=Math.max(0.105,(we-ws)*0.62);
+  return {center,width,we};
+}
 
-  if(z<=ws){
-    const p=clamp01((z-x0)/(ws-x0));
-    const e=p*p*(3-2*p);
-    const late=easeInOutCubic(e);
-    tenant=lerp(tenantStart,tenantHigh*0.985,late);
-    landlord=lerp(landlordStart,landlordLow*1.02,late);
-  }else if(z<=we){
-    const p=clamp01((z-ws)/(we-ws));
-    const crown=1-0.006*Math.pow((p-.5)/.5,2);
-    tenant=tenantHigh*crown;
-    landlord=landlordLow*(2-crown);
-  }else{
-    const p=clamp01((z-we)/(x1-we));
-    const e=easeInOutCubic(p);
-    tenant=lerp(tenantHigh*0.994,tenantEnd,e);
-    landlord=lerp(landlordLow*1.006,landlordEnd,e);
-  }
+function curveValueAt(date){
+  const L=levels();
+  const t=normalizedTime(date);
+  const {center,width,we}=curveCenterAndWidth();
+
+  // ONE continuous bell controls leverage advantage across the full timeline.
+  // No if/else at execution-window boundaries. No joins. No shoulders.
+  const bell=gaussian(t,center,width);
+
+  // A separate globally smooth late-state transition creates the backend crossover.
+  // It is intentionally broad enough to avoid a knee.
+  const lateStart=Math.min(.88,we+.10);
+  const late=smoothstep((t-lateStart)/(1-lateStart));
+
+  const tenantBase=lerp(L.tenantEarly,L.tenantLate,late);
+  const landlordBase=lerp(L.landlordEarly,L.landlordLate,late);
+
+  const tenant=tenantBase+(L.tenantPeak-tenantBase)*bell;
+  const landlord=landlordBase-(landlordBase-L.landlordTrough)*bell;
+
   return {tenant,landlord};
 }
+
 function shapedSeries(){
-  const x0=+DATA[0].date,x1=+DATA.at(-1).date,n=300,out=[];
+  const x0=+DATA[0].date,x1=+DATA.at(-1).date;
+  const out=[],n=1000;
   for(let i=0;i<n;i++){
     const date=new Date(x0+(x1-x0)*(i/(n-1)));
     const v=curveValueAt(date);
@@ -62,6 +84,5 @@ function shapedSeries(){
   }
   return out;
 }
-
 
 export { shapedSeries, curveValueAt };
