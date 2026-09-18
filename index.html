@@ -1,56 +1,154 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer">
-<title>Lease Leverage Engine</title>
-<script type="module" src="https://js.arcgis.com/5.1/"></script>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<div id="app">
-  <header class="toolbar">
-    <div class="brand">LEASE LEVERAGE ENGINE</div>
-    <button id="login" class="primary">SIGN IN / LOAD LIVE DATA</button>
-    <button id="logout" hidden>SIGN OUT</button>
-    <label>Iteration</label>
-    <select id="iteration" disabled><option value="-1">— none —</option></select>
-    <label class="toggle"><input id="anno" type="checkbox" checked> annotation</label>
-    <label class="toggle"><input id="process" type="checkbox" checked> process overlay</label>
-    <label class="toggle"><input id="sched" type="checkbox" checked> schedule</label>
-    <button id="clear" disabled>Clear</button>
-    <span id="status" class="status">Waiting…</span>
-  </header>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Lease Leverage Engine</title><script type="module" src="https://js.arcgis.com/5.1/"></script><style>
+:root{--bg:#06101f;--panel:#081525;--grid:#253247;--text:#d3dde5;--muted:#7890a2;--cyan:#16e6e9;--cyan2:#69c9c6;--red:#f21e32;--amber:#d5a536;--border:#16263a}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:"Courier New",monospace;overflow:hidden}#app{height:100vh;display:grid;grid-template-rows:auto 1fr auto auto;gap:7px;padding:9px}.toolbar{display:flex;align-items:center;gap:9px;min-height:36px}.brand{font-weight:700;color:var(--cyan);margin-right:auto;letter-spacing:.4px}.toolbar label,.status{font-size:10px;color:var(--muted)}select,button{background:#0b1a2c;color:var(--text);border:1px solid #29405a;border-radius:4px;padding:6px 8px;font:inherit;font-size:10px}button{cursor:pointer}.primary{border-color:#1e8b93;color:#d9ffff}.toggle{display:flex;align-items:center;gap:4px}.status{padding:5px 8px;border:1px solid #21364b;border-radius:4px}.ok{color:#8ed3bd}.warn{color:#efc76d}.err{color:#ff9ca7}.wrap{position:relative;min-height:0;border:1px solid var(--border);border-radius:7px;background:var(--panel);overflow:hidden}svg{display:block;width:100%;height:100%}.legend{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:22px;font-size:10px;color:#9cafbd;pointer-events:none}.swatch{display:inline-block;width:9px;height:9px;margin-right:5px}.annotation{position:absolute;z-index:5;pointer-events:none;background:rgba(5,15,28,.96);border:1px solid #31506b;border-radius:6px;padding:9px 11px;max-width:390px;font-size:10px;line-height:1.35;box-shadow:0 12px 28px rgba(0,0,0,.28)}.annotation .title{color:var(--cyan);font-weight:700}.annotation .phase{color:#e6eef4;margin:3px 0 5px}.annotation .metric{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #1b2c3f;padding-top:4px;margin-top:4px}.annotation .read{margin-top:7px;color:#a9bac7}.center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(6,16,31,.97);z-index:20;text-align:center;padding:30px}.center[hidden]{display:none}.center h2{margin:0;color:var(--cyan);font-size:18px}.center p{margin:0;max-width:620px;color:#98aabc;font-size:11px;line-height:1.5}.schedule{border:1px solid var(--border);border-radius:6px;background:#071321;display:grid;grid-template-columns:.75fr 1.65fr 1.35fr 1.0fr 1.85fr;min-height:58px;overflow:hidden}.phasebox{padding:7px;text-align:center;border-right:1px solid #203247;font-size:9px}.phasebox:last-child{border-right:0}.phasebox strong{display:block;font-size:10px;margin-bottom:4px}.phasebox.loi{background:rgba(22,230,233,.10);box-shadow:inset 0 2px 0 var(--cyan)}.phasebox.lease{background:rgba(70,150,160,.08)}.phasebox.post{background:rgba(213,165,54,.07)}.tiny{color:var(--muted);font-size:8px}.impact{border:1px solid #39201a;border-radius:7px;background:#21100b;padding:8px 16px;text-align:center;min-height:76px;display:flex;flex-direction:column;justify-content:center}.impact-title{color:#8fdde3;font-size:13px;letter-spacing:.5px}.impact-delta{font-size:16px;margin:5px 0}.impact-delta.gain{color:var(--cyan)}.impact-delta.loss{color:#ef6c63}.impact-delta.neutral{color:#b8c4cd}.impact-npv{font-size:12px;color:#d7d8da;word-spacing:3px}.axis{fill:#7992a4;font-size:9px}.grid{stroke:var(--grid);stroke-width:1}.guide{stroke:var(--cyan);stroke-width:2}.guideDash{stroke:var(--cyan);stroke-width:1.5;stroke-dasharray:6 4}.t1{fill:var(--cyan);font-size:10px;font-weight:700}.t2{fill:#c3d0d9;font-size:9px}.sel{stroke:#eaf4fa;stroke-width:1;stroke-dasharray:3 4;opacity:.7}.dot{stroke:#fff;stroke-width:2}.proc{font-size:8px;font-weight:700}.windowArrow{stroke:var(--cyan);stroke-width:1.5;fill:none}.windowShade{fill:#16e6e9;fill-opacity:.045}
+</style></head><body><div id="app"><div class="toolbar"><div class="brand">LEASE LEVERAGE ENGINE <span style="font-size:8px;color:#55778a;font-weight:400">RECOVERY-1</span></div><button id="login" class="primary">SIGN IN / LOAD LIVE DATA</button><button id="logout" hidden>SIGN OUT</button><label>Iteration</label><select id="iteration" disabled><option value="-1">— none —</option></select><label class="toggle"><input id="anno" type="checkbox" checked> annotation</label><label class="toggle"><input id="process" type="checkbox" checked> process overlay</label><label class="toggle"><input id="sched" type="checkbox" checked> schedule</label><button id="clear" disabled>Clear</button><span id="status" class="status">Waiting…</span></div><div id="wrap" class="wrap"><div class="legend"><span><i class="swatch" style="background:#f21e32"></i>LANDLORD LEVERAGE</span><span><i class="swatch" style="background:#4d8f8e"></i>TENANT LEVERAGE</span></div><svg id="chart"></svg><div id="popup" class="annotation" hidden></div><div id="center" class="center"><h2>LEASE LEVERAGE ENGINE</h2><p id="msg">Protected chart data loads only after ArcGIS authentication.</p><button id="centerLogin" class="primary">SIGN IN / LOAD LIVE DATA</button></div></div><div id="schedule" class="schedule"><div class="phasebox"><strong>STRATEGIC PLANNING</strong><span class="tiny">Objectives · constraints · viable scenarios</span></div><div class="phasebox"><strong>MARKET EVALUATION</strong><span class="tiny">Extended market discovery · options · proposals</span></div><div class="phasebox loi"><strong>TERM SHEET / LOI NEGOTIATIONS</strong><span class="tiny">Begins mid-2028 · continues through front half of window</span></div><div class="phasebox lease"><strong>LEASE NEGOTIATIONS</strong><span class="tiny">Back half of optimal execution window</span></div><div class="phasebox post"><strong>DESIGN · PERMIT · CONSTRUCTION</strong><span class="tiny">Begins after window · continues through model horizon</span></div></div><div id="impact" class="impact"><div class="impact-title">FINANCIAL IMPACT OF EXECUTION TIMING</div><div id="impactDelta" class="impact-delta neutral">SELECT AN ITERATION</div><div id="impactNpv" class="impact-npv">NPV TODAY — &nbsp;&nbsp; NPV IN EXECUTION WINDOW —</div></div></div>
+<script type="module">
+const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;const money=v=>Number.isFinite(+v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(+v):'—';const months=(a,b)=>Math.max(0,Math.round((b-a)/2629800000));const ns=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e};const txt=(x,y,s,cl,an='start')=>{const t=ns('text',{x,y,class:cl,'text-anchor':an});t.textContent=s;svg.appendChild(t);return t};function state(s,c=''){status.textContent=s;status.className='status '+c}
+function pick(fs,cands,req=false){const m=new Map(fs.map(f=>[f.name.toLowerCase(),f.name]));for(const c of cands){if(m.has(c.toLowerCase()))return m.get(c.toLowerCase())}if(req)throw new Error('Required field missing: '+cands.join(' / '));return null}function val(a,k){return fields[k]?a[fields[k]]:null}
+function parseIteration(s){const m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*[-–—]\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(!m)return null;const yr=y=>+y<100?2000+(+y):+y;return{start:new Date(yr(m[3]),+m[1]-1,+m[2]),end:new Date(yr(m[6]),+m[4]-1,+m[5])}}
+function windowBounds(){
+  // Business rule: the Optimal Execution Window is bounded by the START dates
+  // of the configured key rows. This intentionally avoids using the later
+  // iteration end date (the extra 02/08/30-type boundary).
+  const a=DATA[CFG.startRow-1], b=DATA[CFG.endRow-1];
+  const pa=parseIteration(a?.iteration), pb=parseIteration(b?.iteration);
+  return {start:pa?.start||a.date, end:pb?.start||b.date};
+}
+function activeDate(){const d=new Date();d.setHours(0,0,0,0);return d}
+function clamp01(t){return Math.max(0,Math.min(1,t))}
+function smoother(t){t=clamp01(t);return t*t*t*(t*(t*6-15)+10)}
+function lerp(a,b,t){return a+(b-a)*t}
+function curveLevels(){
+  const rawT=DATA.map(d=>d.tenant), rawL=DATA.map(d=>d.landlord);
+  return {
+    tStart:Math.min(...rawT), tPeak:Math.max(...rawT),
+    lStart:Math.max(...rawL), lLow:Math.min(...rawL)
+  };
+}
+function curveValueAt(date){
+  const win=windowBounds(), lev=curveLevels();
+  const x0=+DATA[0].date, x1=+DATA.at(-1).date, ws=+win.start, we=+win.end, z=+date;
+  // Keep the live layer as the scale anchor, but make the presentation curve
+  // deliberately smooth: gradual early movement, acceleration into the window,
+  // a gentle rounded high-leverage horizon, then a clean post-window reversal.
+  const t0=lev.tStart, tp=lev.tPeak*0.955, l0=lev.lStart, ll=lev.lLow*1.01;
+  let tenant, landlord;
+  if(z<=ws){
+    const p=smoother((z-x0)/(ws-x0));
+    tenant=lerp(t0,tp*0.985,p);
+    landlord=lerp(l0,ll*1.015,p);
+  }else if(z<=we){
+    const p=clamp01((z-ws)/(we-ws));
+    // Very shallow rounded crown — not a tabletop and not a sharp peak.
+    const crown=1-0.012*Math.pow((p-.5)/.5,2);
+    tenant=tp*crown;
+    landlord=ll*(1+0.012*Math.pow((p-.5)/.5,2));
+  }else{
+    const p=smoother((z-we)/(x1-we));
+    const tEnd=Math.max(t0, DATA.at(-1).tenant);
+    const lEnd=Math.min(l0, DATA.at(-1).landlord);
+    tenant=lerp(tp*0.988,tEnd,p);
+    landlord=lerp(ll*1.012,lEnd,p);
+  }
+  return {tenant,landlord};
+}
+function shapedSeries(){
+  // Sample many dates so the curve is aesthetically smooth and cannot develop
+  // little bumps/notches from sparse iteration anchors.
+  const x0=+DATA[0].date, x1=+DATA.at(-1).date, n=120, out=[];
+  for(let i=0;i<n;i++){
+    const date=new Date(x0+(x1-x0)*(i/(n-1)));
+    const v=curveValueAt(date);
+    out.push({date,plotTenant:v.tenant,plotLandlord:v.landlord});
+  }
+  return out;
+}
+async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configuration','err');msg.innerHTML='Missing clientId or service URL.';return}const OAuthInfo=await $arcgis.import('@arcgis/core/identity/OAuthInfo.js');idm=await $arcgis.import('@arcgis/core/identity/IdentityManager.js');FeatureLayer=await $arcgis.import('@arcgis/core/layers/FeatureLayer.js');const info=new OAuthInfo({appId:CFG.clientId,portalUrl:CFG.portal,popup:true,popupCallbackUrl:'oauth-callback.html',flowType:'auto'});idm.registerOAuthInfos([info]);try{await idm.checkSignInStatus(CFG.portal+'/sharing/rest');await load()}catch(e){$('login').hidden=false;$('logout').hidden=true;select.disabled=true;$('clear').disabled=true;center.hidden=false;popup.hidden=true;state('Sign in required','warn')}}
+async function signIn(){try{state('Opening ArcGIS sign-in…','warn');$('login').disabled=true;$('centerLogin').disabled=true;await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);$('login').hidden=false;$('logout').hidden=true;state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}finally{$('login').disabled=false;$('centerLogin').disabled=false}}
+async function load(){center.hidden=false;msg.textContent='Authenticated. Loading protected chart data…';state('Loading protected layer…','warn');const layer=new FeatureLayer({url:CFG.service});await layer.load();fields={date:pick(layer.fields,['Chart_dates','chart_dates','chart_date'],true),tenant:pick(layer.fields,['Decision_Curve_0to100','decision_curve_0to100','decision_0to100'],true),landlord:pick(layer.fields,['plot_LL','plot_ll'],true),iteration:pick(layer.fields,['comb_iter','iteration']),phase:pick(layer.fields,['Phases','phase']),action:pick(layer.fields,['ACTION_POINT','action_point']),rent:pick(layer.fields,['ACTION_EFFECTIVE_RENT','action_effective_rent']),alev:pick(layer.fields,['ACTION_LEVERAGE','action_leverage']),wait:pick(layer.fields,['NET_WAIT_VALUE_DAY','net_wait_value_day']),chrono:pick(layer.fields,['CHRONOS_ACTION','chronos_action']),read:pick(layer.fields,['chronos_read','economic_read']),npvToday:pick(layer.fields,['ACTION_NPV_CURRENT','action_npv_current']),npvExec:pick(layer.fields,['ACTION_NPV_EXEC_ADJUSTED','action_npv_exec_adjusted']),npvDelta:pick(layer.fields,['ACTION_NPV_TIMING_DELTA','action_npv_timing_delta'])};const out=[...new Set(Object.values(fields).filter(Boolean))];const q=layer.createQuery();q.where=`${fields.tenant} IS NOT NULL AND ${fields.date} IS NOT NULL`;q.outFields=out;q.returnGeometry=false;q.orderByFields=[`${fields.date} ASC`];const r=await layer.queryFeatures(q);DATA=r.features.map(f=>{const a=f.attributes;let t=+val(a,'tenant');if(t<=1.5)t*=100;return{date:new Date(val(a,'date')),tenant:t,landlord:+val(a,'landlord'),iteration:val(a,'iteration'),phase:val(a,'phase'),action:val(a,'action'),rent:val(a,'rent'),alev:val(a,'alev'),wait:val(a,'wait'),chrono:val(a,'chrono'),read:val(a,'read'),npvToday:val(a,'npvToday'),npvExec:val(a,'npvExec'),npvDelta:val(a,'npvDelta')}}).filter(d=>Number.isFinite(+d.date)&&Number.isFinite(d.tenant)&&Number.isFinite(d.landlord)).sort((a,b)=>a.date-b.date);if(DATA.length<CFG.endRow)throw new Error(`Only ${DATA.length} chart rows returned; windowEndRow is ${CFG.endRow}.`);select.innerHTML='<option value="-1">— none —</option>'+DATA.map((d,i)=>`<option value="${i}">${esc(d.iteration||fmt(d.date))}</option>`).join('');$('login').hidden=true;$('logout').hidden=false;select.disabled=false;$('clear').disabled=false;center.hidden=true;state(`Live · ${DATA.length} chart rows`,'ok');if(CFG.selected){selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim());select.value=String(selected)}render();updateImpact()}
+function curvePath(pts){if(pts.length<2)return'';let d=`M ${pts[0][0]} ${pts[0][1]}`;for(let i=0;i<pts.length-1;i++){let p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`}return d}
+function render(){
+  if(!DATA.length){svg.innerHTML='';return}
+  const P=shapedSeries(),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
+  const pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
+  const min=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3;
+  const max=Math.ceil(Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5+3;
+  const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(max-v)/(max-min)*ph,base=y(min),win=windowBounds();
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
 
-  <main id="wrap" class="wrap">
-    <div class="legend">
-      <span><i class="swatch landlord"></i>LANDLORD LEVERAGE</span>
-      <span><i class="swatch tenant"></i>TENANT LEVERAGE</span>
-    </div>
-    <svg id="chart" aria-label="Lease leverage timeline"></svg>
-    <div id="popup" class="annotation" hidden></div>
-    <div id="center" class="center">
-      <h2>LEASE LEVERAGE ENGINE</h2>
-      <p id="msg">Protected chart data loads only after ArcGIS authentication.</p>
-      <button id="centerLogin" class="primary">SIGN IN / LOAD LIVE DATA</button>
-    </div>
-  </main>
+  for(let v=Math.ceil(min/5)*5;v<=Math.floor(max/5)*5;v+=5){
+    svg.appendChild(ns('line',{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),class:'grid'}));txt(m.l-8,y(v)+3,v,'axis','end')
+  }
+  for(let yr=P[0].date.getFullYear();yr<=P.at(-1).date.getFullYear();yr++){
+    const d=new Date(`${yr}-01-01T00:00:00`);if(+d>=x0&&+d<=x1){svg.appendChild(ns('line',{x1:x(d),y1:m.t,x2:x(d),y2:base,class:'grid'}));txt(x(d),H-10,'Jan '+yr,'axis','middle')}
+  }
 
-  <section id="schedule" class="schedule">
-    <div class="phasebox early"><strong>STRATEGIC PLANNING</strong><span>Objectives · constraints · viable scenarios</span><em>2–3 months</em></div>
-    <div class="phasebox rising"><strong>MARKET EVALUATION</strong><span>Extended market discovery · options · proposals</span><em>through Jul 2028</em></div>
-    <div class="phasebox peak"><strong>TERM SHEET / LOI NEGOTIATIONS</strong><span>Competing proposals · core business terms</span><em>front half of execution window</em></div>
-    <div class="phasebox decay"><strong>LEASE NEGOTIATIONS</strong><span>Documentation · final lease terms</span><em>back half of execution window</em></div>
-    <div class="phasebox late"><strong>DESIGN · PERMIT · CONSTRUCTION</strong><span>Planning · approvals · buildout · occupancy</span><em>through model horizon</em></div>
-  </section>
+  const wx1=x(win.start),wx2=x(win.end);
+  svg.appendChild(ns('rect',{x:wx1,y:m.t,width:Math.max(2,wx2-wx1),height:ph,class:'windowShade'}));
+  const tp=P.map(d=>[x(d.date),y(d.plotTenant)]),lp=P.map(d=>[x(d.date),y(d.plotLandlord)]),tl=curvePath(tp),ll=curvePath(lp);
+  svg.appendChild(ns('path',{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:'#b50019','fill-opacity':'.62'}));
+  svg.appendChild(ns('path',{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:'#4b8584','fill-opacity':'.54'}));
+  svg.appendChild(ns('path',{d:ll,fill:'none',stroke:'#f21e32','stroke-width':'2.35'}));
+  svg.appendChild(ns('path',{d:tl,fill:'none',stroke:'#69c9c6','stroke-width':'2.35'}));
 
-  <section class="impact">
-    <div class="impact-title">FINANCIAL IMPACT OF EXECUTION TIMING</div>
-    <div id="impactDelta" class="impact-delta neutral">SELECT AN ITERATION</div>
-    <div id="impactNpv" class="impact-npv">NPV TODAY — &nbsp; | &nbsp; NPV IN EXECUTION WINDOW —</div>
-  </section>
-</div>
-<script type="module" src="app.js"></script>
-</body>
-</html>
+  if($('process').checked)proc(x,m,W,H,x0,x1,win);
+
+  // TODAY is always TODAY. Iteration selection never moves this guide.
+  const now=activeDate();
+  if(+now>=x0&&+now<=x1){
+    const tx=x(now),exp=parseIteration(DATA.at(-1).iteration)?.end||DATA.at(-1).date;
+    svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,class:'guideDash'}));
+    txt(tx+8,m.t+13,`TODAY (${fmt(now)})`,'t1');
+    txt(tx+8,m.t+28,`${months(now,exp)} months to lease expiration`,'t2');
+    txt(tx+8,m.t+41,`${months(now,win.start)} months to optimal execution window`,'t2');
+  }
+
+  // Clean window: vertical boundaries + ONE date treatment below the arrow.
+  [win.start,win.end].forEach(d=>{const xx=x(d);svg.appendChild(ns('line',{x1:xx,y1:m.t-8,x2:xx,y2:base,class:'guideDash'}))});
+  txt((wx1+wx2)/2,m.t+10,'OPTIMAL EXECUTION WINDOW','t1','middle');
+  const ay=m.t+27;
+  svg.appendChild(ns('line',{x1:wx1+12,y1:ay,x2:wx2-12,y2:ay,class:'windowArrow'}));
+  svg.appendChild(ns('path',{d:`M ${wx1+12} ${ay} l 8 -5 M ${wx1+12} ${ay} l 8 5 M ${wx2-12} ${ay} l -8 -5 M ${wx2-12} ${ay} l -8 5`,class:'windowArrow'}));
+  txt((wx1+wx2)/2,m.t+45,`${fmt(win.start)} – ${fmt(win.end)}`,'t1','middle');
+
+  // Clickable live-data anchors. The full curve never disappears.
+  DATA.forEach((d,i)=>{const v=curveValueAt(d.date),h=ns('circle',{cx:x(d.date),cy:y(v.tenant),r:10,fill:'transparent',style:'cursor:pointer'});h.addEventListener('click',()=>choose(i));svg.appendChild(h)});
+
+  if(selected>=0&&DATA[selected]){
+    const d=DATA[selected],v=curveValueAt(d.date),sx=x(d.date),sy=y(v.tenant),ly=y(v.landlord);
+    svg.appendChild(ns('line',{x1:sx,y1:m.t+52,x2:sx,y2:base,class:'sel'}));
+    svg.appendChild(ns('circle',{cx:sx,cy:sy,r:5,fill:'#16e6e9',class:'dot'}));
+    svg.appendChild(ns('circle',{cx:sx,cy:ly,r:5,fill:'#f21e32',class:'dot'}));
+    showPop(d,sx,Math.min(sy,ly),W,H,m);
+  }else popup.hidden=true;
+}
+
+function proc(x,m,W,H,x0,x1,win){
+  const midpoint=(a,b)=>new Date((+a + +b)/2);
+  const marketEnd=new Date('2028-07-01T00:00:00');
+  const windowMid=midpoint(win.start,win.end);
+  const strategicEnd=new Date(x0+(+marketEnd-x0)*0.20);
+  const stages=[
+    ['STRATEGIC PLANNING',new Date(x0),strategicEnd,.25,'#4ec6d2','2–3 months'],
+    ['MARKET EVALUATION',strategicEnd,marketEnd,.36,'#7f98ad','through mid-2028'],
+    ['TERM SHEET / LOI NEGOTIATIONS',marketEnd,windowMid,.48,'#16e6e9','through front half of window'],
+    ['LEASE NEGOTIATIONS',windowMid,win.end,.58,'#57c3c1','back half of execution window'],
+    ['DESIGN · PERMIT · CONSTRUCTION',win.end,new Date(x1),.68,'#d5a536','through model horizon']
+  ];
+  const defs=svg.querySelector('defs')||svg.insertBefore(ns('defs'),svg.firstChild);
+  stages.forEach((p,i)=>{
+    const a=Math.max(m.l,x(p[1])),b=Math.min(W-m.r,x(p[2]));if(b<=a)return;
+    const yy=m.t+(H-m.t-32)*p[3],id='pg'+i,g=ns('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'0%'});
+    g.appendChild(ns('stop',{offset:'0%','stop-color':p[4],'stop-opacity':'.02'}));
+    g.appendChild(ns('stop',{offset:'50%','stop-color':p[4],'stop-opacity':'.12'}));
+    g.appendChild(ns('stop',{offset:'100%','stop-color':p[4],'stop-opacity':'.02'}));defs.appendChild(g);
+    svg.appendChild(ns('rect',{x:a,y:yy-5,width:b-a,height:10,rx:4,fill:`url(#${id})`,stroke:p[4],'stroke-opacity':'.34'}));
+    if(b-a>95){const t=txt((a+b)/2,yy-9,p[0],'proc','middle');t.setAttribute('fill',p[4])}
+    if(b-a>180){const st=txt((a+b)/2,yy+16,p[5],'axis','middle');st.setAttribute('fill','#8ba0b0')}
+  });
+}
+function showPop(d,sx,sy,W,H,m){if(!$('anno').checked){popup.hidden=true;return}let info=[d.phase,d.action,d.chrono].filter(Boolean).join(' · ');popup.innerHTML=`<div class="title">${esc(d.iteration||fmt(d.date))}</div><div class="phase">${esc(info)}</div><div class="metric"><span>Tenant leverage</span><strong>${d.tenant.toFixed(1)}</strong></div><div class="metric"><span>Landlord leverage</span><strong>${d.landlord.toFixed(1)}</strong></div>${d.alev!=null?`<div class="metric"><span>Action leverage</span><strong>${(+d.alev).toFixed(1)}</strong></div>`:''}${d.rent!=null?`<div class="metric"><span>Effective rent</span><strong>$${(+d.rent).toFixed(2)}/SF</strong></div>`:''}${d.wait!=null?`<div class="metric"><span>Net wait value</span><strong>${money(d.wait)}/day</strong></div>`:''}${d.read?`<div class="read">${esc(d.read)}</div>`:''}`;popup.hidden=false;popup.style.left=Math.max(8,sx<W*.68?sx+14:sx-404)+'px';popup.style.top=Math.max(m.t+52,Math.min(H-235,sy-25))+'px'}
+function updateImpact(){const d=selected>=0?DATA[selected]:DATA[0];if(!d)return;const today=+d.npvToday,exec=+d.npvExec,raw=+d.npvDelta;let delta=Number.isFinite(raw)?raw:(Number.isFinite(today)&&Number.isFinite(exec)?today-exec:NaN);const el=$('impactDelta');if(Number.isFinite(delta)){const gain=delta>0,loss=delta<0;el.className='impact-delta '+(gain?'gain':loss?'loss':'neutral');el.textContent=`${gain?'+':loss?'−':''}${money(Math.abs(delta))} VALUE ${gain?'GAINED':loss?'LOST':'CHANGE'} BY EXECUTING IN WINDOW`}else{el.className='impact-delta neutral';el.textContent='FINANCIAL IMPACT AVAILABLE WHEN NPV FIELDS ARE POPULATED'}$('impactNpv').textContent=`NPV TODAY ${money(today)}   |   NPV IN EXECUTION WINDOW ${money(exec)}`}
+function choose(i){selected=+i;select.value=String(selected);render();updateImpact()}
+$('login').onclick=signIn;$('centerLogin').onclick=signIn;$('logout').onclick=()=>{idm?.destroyCredentials();location.reload()};select.onchange=()=>choose(select.value);$('anno').onchange=render;$('process').onchange=render;$('sched').onchange=e=>$('schedule').style.display=e.target.checked?'grid':'none';$('clear').onclick=()=>choose(-1);window.onresize=render;window.addEventListener('message',e=>{if(!DATA.length||e?.data?.type!=='lease-leverage-selection')return;let i=DATA.findIndex(d=>String(d.iteration||'').trim()===String(e.data.iteration||'').trim());if(i>=0)choose(i)});setup().catch(e=>{console.error(e);state('Initialization failed','err');msg.innerHTML='<span style="color:#ff9ca7">'+esc(e.message||e)+'</span>'});
+</script></body></html>
