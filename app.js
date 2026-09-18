@@ -1,3 +1,4 @@
+import { shapedSeries, curveValueAt } from "./curves.js";
 const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;const money=v=>Number.isFinite(+v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(+v):'—';const months=(a,b)=>Math.max(0,Math.round((b-a)/2629800000));const ns=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e};const txt=(x,y,s,cl,an='start')=>{const t=ns('text',{x,y,class:cl,'text-anchor':an});t.textContent=s;svg.appendChild(t);return t};function state(s,c=''){status.textContent=s;status.className='status '+c}
 function pick(fs,cands,req=false){const m=new Map(fs.map(f=>[f.name.toLowerCase(),f.name]));for(const c of cands){if(m.has(c.toLowerCase()))return m.get(c.toLowerCase())}if(req)throw new Error('Required field missing: '+cands.join(' / '));return null}function val(a,k){return fields[k]?a[fields[k]]:null}
@@ -14,51 +15,6 @@ function activeDate(){const d=new Date();d.setHours(0,0,0,0);return d}
 function clamp01(t){return Math.max(0,Math.min(1,t))}
 function smoother(t){t=clamp01(t);return t*t*t*(t*(t*6-15)+10)}
 function lerp(a,b,t){return a+(b-a)*t}
-function curveLevels(){
-  const rawT=DATA.map(d=>d.tenant), rawL=DATA.map(d=>d.landlord);
-  return {
-    tStart:Math.min(...rawT), tPeak:Math.max(...rawT),
-    lStart:Math.max(...rawL), lLow:Math.min(...rawL)
-  };
-}
-function curveValueAt(date){
-  const win=windowBounds(), lev=curveLevels();
-  const x0=+DATA[0].date, x1=+DATA.at(-1).date, ws=+win.start, we=+win.end, z=+date;
-  // Keep the live layer as the scale anchor, but make the presentation curve
-  // deliberately smooth: gradual early movement, acceleration into the window,
-  // a gentle rounded high-leverage horizon, then a clean post-window reversal.
-  const t0=lev.tStart, tp=lev.tPeak*0.955, l0=lev.lStart, ll=lev.lLow*1.01;
-  let tenant, landlord;
-  if(z<=ws){
-    const p=smoother((z-x0)/(ws-x0));
-    tenant=lerp(t0,tp*0.985,p);
-    landlord=lerp(l0,ll*1.015,p);
-  }else if(z<=we){
-    const p=clamp01((z-ws)/(we-ws));
-    // Very shallow rounded crown — not a tabletop and not a sharp peak.
-    const crown=1-0.012*Math.pow((p-.5)/.5,2);
-    tenant=tp*crown;
-    landlord=ll*(1+0.012*Math.pow((p-.5)/.5,2));
-  }else{
-    const p=smoother((z-we)/(x1-we));
-    const tEnd=Math.max(t0, DATA.at(-1).tenant);
-    const lEnd=Math.min(l0, DATA.at(-1).landlord);
-    tenant=lerp(tp*0.988,tEnd,p);
-    landlord=lerp(ll*1.012,lEnd,p);
-  }
-  return {tenant,landlord};
-}
-function shapedSeries(){
-  // Sample many dates so the curve is aesthetically smooth and cannot develop
-  // little bumps/notches from sparse iteration anchors.
-  const x0=+DATA[0].date, x1=+DATA.at(-1).date, n=120, out=[];
-  for(let i=0;i<n;i++){
-    const date=new Date(x0+(x1-x0)*(i/(n-1)));
-    const v=curveValueAt(date);
-    out.push({date,plotTenant:v.tenant,plotLandlord:v.landlord});
-  }
-  return out;
-}
 async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configuration','err');msg.innerHTML='Missing clientId or service URL.';return}const OAuthInfo=await $arcgis.import('@arcgis/core/identity/OAuthInfo.js');idm=await $arcgis.import('@arcgis/core/identity/IdentityManager.js');FeatureLayer=await $arcgis.import('@arcgis/core/layers/FeatureLayer.js');const info=new OAuthInfo({appId:CFG.clientId,portalUrl:CFG.portal,popup:true,popupCallbackUrl:'oauth-callback.html',flowType:'auto'});idm.registerOAuthInfos([info]);try{await idm.checkSignInStatus(CFG.portal+'/sharing/rest');await load()}catch(e){state('Sign in required','warn')}}
 async function signIn(){try{state('Opening ArcGIS sign-in…','warn');await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}}
 async function load(){center.hidden=false;msg.textContent='Authenticated. Loading protected chart data…';state('Loading protected layer…','warn');const layer=new FeatureLayer({url:CFG.service});await layer.load();fields={date:pick(layer.fields,['Chart_dates','chart_dates','chart_date'],true),tenant:pick(layer.fields,['Decision_Curve_0to100','decision_curve_0to100','decision_0to100'],true),landlord:pick(layer.fields,['plot_LL','plot_ll'],true),iteration:pick(layer.fields,['comb_iter','iteration']),phase:pick(layer.fields,['Phases','phase']),action:pick(layer.fields,['ACTION_POINT','action_point']),rent:pick(layer.fields,['ACTION_EFFECTIVE_RENT','action_effective_rent']),alev:pick(layer.fields,['ACTION_LEVERAGE','action_leverage']),wait:pick(layer.fields,['NET_WAIT_VALUE_DAY','net_wait_value_day']),chrono:pick(layer.fields,['CHRONOS_ACTION','chronos_action']),read:pick(layer.fields,['chronos_read','economic_read']),npvToday:pick(layer.fields,['ACTION_NPV_CURRENT','action_npv_current']),npvExec:pick(layer.fields,['ACTION_NPV_EXEC_ADJUSTED','action_npv_exec_adjusted']),npvDelta:pick(layer.fields,['ACTION_NPV_TIMING_DELTA','action_npv_timing_delta'])};const out=[...new Set(Object.values(fields).filter(Boolean))];const q=layer.createQuery();q.where=`${fields.tenant} IS NOT NULL AND ${fields.date} IS NOT NULL`;q.outFields=out;q.returnGeometry=false;q.orderByFields=[`${fields.date} ASC`];const r=await layer.queryFeatures(q);DATA=r.features.map(f=>{const a=f.attributes;let t=+val(a,'tenant');if(t<=1.5)t*=100;return{date:new Date(val(a,'date')),tenant:t,landlord:+val(a,'landlord'),iteration:val(a,'iteration'),phase:val(a,'phase'),action:val(a,'action'),rent:val(a,'rent'),alev:val(a,'alev'),wait:val(a,'wait'),chrono:val(a,'chrono'),read:val(a,'read'),npvToday:val(a,'npvToday'),npvExec:val(a,'npvExec'),npvDelta:val(a,'npvDelta')}}).filter(d=>Number.isFinite(+d.date)&&Number.isFinite(d.tenant)&&Number.isFinite(d.landlord)).sort((a,b)=>a.date-b.date);if(DATA.length<CFG.endRow)throw new Error(`Only ${DATA.length} chart rows returned; windowEndRow is ${CFG.endRow}.`);select.innerHTML='<option value="-1">— none —</option>'+DATA.map((d,i)=>`<option value="${i}">${esc(d.iteration||fmt(d.date))}</option>`).join('');$('login').hidden=true;$('logout').hidden=false;select.disabled=false;$('clear').disabled=false;center.hidden=true;state(`Live · ${DATA.length} chart rows`,'ok');if(CFG.selected){selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim());select.value=String(selected)}render();updateImpact()}
