@@ -53,9 +53,12 @@ function render(){
   const plottedValues=P.flatMap(d=>[d.plotTenant,d.plotLandlord]);
   const plottedMin=Math.min(...plottedValues);
   const plottedMax=Math.max(...plottedValues);
-  // EXACT requested scale: 10 leverage points below and above the FINAL rendered curves.
-  const ymin=Math.floor((plottedMin-10)/5)*5;
-  const ymax=Math.ceil((plottedMax+10)/5)*5;
+
+  // Exact visual breathing room requested:
+  // axis bottom = 10 leverage points below the lowest rendered curve
+  // axis top    = 10 leverage points above the highest rendered curve
+  const ymin=plottedMin-10;
+  const ymax=plottedMax+10;
   const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(ymax-v)/(ymax-ymin)*ph,base=y(ymin);
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
 
