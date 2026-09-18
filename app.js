@@ -1,6 +1,6 @@
-import {series,valueAt,smoothPath} from "./curves.js";
-import {drawProcess} from "./process.js";
-import {escapeHtml,money,showPopup} from "./annotations.js";
+import {series,valueAt,smoothPath} from "./curves.js?v=20260918-1830";
+import {drawProcess} from "./process.js?v=20260918-1830";
+import {escapeHtml,money,showPopup} from "./annotations.js?v=20260918-1830";
 
 const qs=new URLSearchParams(location.search);
 const CFG={clientId:qs.get("clientId")||"",service:qs.get("service")||"",portal:qs.get("portal")||"https://www.arcgis.com",startRow:+(qs.get("windowStartRow")||13),endRow:+(qs.get("windowEndRow")||17),selected:qs.get("selected")||qs.get("iteration")||""};
