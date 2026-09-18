@@ -1,6 +1,6 @@
-import {series,valueAt,smoothPath} from "./curves.js?v=20260918-1830";
-import {drawProcess} from "./process.js?v=20260918-1830";
-import {escapeHtml,money,showPopup} from "./annotations.js?v=20260918-1830";
+import {series,valueAt,smoothPath} from "./curves.js";
+import {drawProcess} from "./process.js";
+import {escapeHtml,money,showPopup} from "./annotations.js";
 
 const qs=new URLSearchParams(location.search);
 const CFG={clientId:qs.get("clientId")||"",service:qs.get("service")||"",portal:qs.get("portal")||"https://www.arcgis.com",startRow:+(qs.get("windowStartRow")||13),endRow:+(qs.get("windowEndRow")||17),selected:qs.get("selected")||qs.get("iteration")||""};
@@ -47,89 +47,37 @@ async function load(){
 }
 function render(){
   if(!DATA.length)return;
+  const win=windowBounds(),P=series(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight;
+  // Dedicated 82px header band. Curves begin BELOW it.
+  const m={l:58,r:20,t:108,b:32},pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
+  const ymin=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3,ymax=Math.ceil(Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5+3;
+  const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(ymax-v)/(ymax-ymin)*ph,base=y(ymin);
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
 
-  const win=windowBounds();
-  const P=series(DATA,win);
-  const W=wrap.clientWidth;
-  const H=wrap.clientHeight;
-
-  // Layout only. This does NOT determine leverage scale.
-  const m={l:68,r:24,t:126,b:38};
-  const pw=W-m.l-m.r;
-  const ph=H-m.t-m.b;
-  const x0=+P[0].date;
-  const x1=+P.at(-1).date;
-
-  // SINGLE SOURCE OF TRUTH FOR THE Y DOMAIN.
-  // Measure the FINAL series that is actually about to be drawn.
-  const renderedValues=[];
-  for(const point of P){
-    if(Number.isFinite(point.plotTenant)) renderedValues.push(point.plotTenant);
-    if(Number.isFinite(point.plotLandlord)) renderedValues.push(point.plotLandlord);
-  }
-  if(!renderedValues.length) throw new Error("No finite rendered leverage values.");
-
-  const renderedMin=Math.min(...renderedValues);
-  const renderedMax=Math.max(...renderedValues);
-
-  // Automatic for every client/group. Exactly 10 leverage points of breathing room.
-  // No floor(), ceil(), fixed 35/100, or tick rounding is allowed to change this domain.
-  const axisPadding=10;
-  const ymin=Math.max(0,renderedMin-axisPadding);
-  const ymax=Math.min(100,renderedMax+axisPadding);
-
-  const x=d=>m.l+((+d-x0)/(x1-x0))*pw;
-  const y=v=>m.t+((ymax-v)/(ymax-ymin))*ph;
-  const base=y(ymin);
-
-  // Visible verification of the ACTIVE scale; proves what this running build is using.
-  status.textContent=`Live · ${DATA.length} chart rows · Y ${Math.round(ymin*10)/10}–${Math.round(ymax*10)/10}`;
-
-svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
-
-  {
-    const tickStep=5;
-    const firstTick=Math.ceil(ymin/tickStep)*tickStep;
-    const lastTick=Math.floor(ymax/tickStep)*tickStep;
-    // Y-axis ticks are labels INSIDE the exact domain; they never redefine it.
-  // Use a readable step based on the actual domain span.
-  const ySpan=ymax-ymin;
-  const tickStep=ySpan<=35?5:ySpan<=70?10:20;
-  const firstTick=Math.ceil(ymin/tickStep)*tickStep;
-  const lastTick=Math.floor(ymax/tickStep)*tickStep;
-
-  // Explicit true domain endpoints so you can SEE the automatic padding.
-  
-  for(let v=firstTick;v<=lastTick+1e-9;v+=tickStep){
-    if(Math.abs(v-ymin)<.01||Math.abs(v-ymax)<.01)continue;
-    svg.appendChild(ns("line",{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),class:"grid"}));
-    txt(m.l-8,y(v)+3,(Math.round(v*10)/10).toString(),"axis","end");
-  }
-  
-
+  for(let v=Math.ceil(ymin/5)*5;v<=Math.floor(ymax/5)*5;v+=5){svg.appendChild(ns("line",{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),class:"grid"}));txt(m.l-8,y(v)+3,v,"axis","end")}
   for(let yr=P[0].date.getFullYear();yr<=P.at(-1).date.getFullYear();yr++){const d=new Date(`${yr}-01-01T00:00:00`);if(+d>=x0&&+d<=x1){svg.appendChild(ns("line",{x1:x(d),y1:m.t,x2:x(d),y2:base,class:"grid"}));txt(x(d),H-10,"Jan "+yr,"axis","middle")}}
 
   const wx1=x(win.start),wx2=x(win.end);
   svg.appendChild(ns("rect",{x:wx1,y:m.t,width:Math.max(2,wx2-wx1),height:ph,class:"windowShade"}));
 
   const tp=P.map(d=>[x(d.date),y(d.plotTenant)]),lp=P.map(d=>[x(d.date),y(d.plotLandlord)]),tl=smoothPath(tp),ll=smoothPath(lp);
-  svg.appendChild(ns("path",{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:"#b50019","fill-opacity":".52"}));
-  svg.appendChild(ns("path",{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:"#4b8584","fill-opacity":".48"}));
-  svg.appendChild(ns("path",{d:ll,fill:"none",stroke:"#f21e32","stroke-width":"3.25"}));
-  svg.appendChild(ns("path",{d:tl,fill:"none",stroke:"#69c9c6","stroke-width":"3.25"}));
+  svg.appendChild(ns("path",{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:"#b50019","fill-opacity":".46"}));
+  svg.appendChild(ns("path",{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:"#4b8584","fill-opacity":".42"}));
+  svg.appendChild(ns("path",{d:ll,fill:"none",stroke:"#f21e32","stroke-width":"2.6"}));
+  svg.appendChild(ns("path",{d:tl,fill:"none",stroke:"#69c9c6","stroke-width":"2.6"}));
 
   // Dedicated header band: impossible for curves to intersect these labels.
-  const headerTitleY=42,arrowY=65,dateY=91;
+  const headerTitleY=45,arrowY=64,dateY=83;
   txt((wx1+wx2)/2,headerTitleY,"OPTIMAL EXECUTION WINDOW","windowTitle","middle");
   svg.appendChild(ns("line",{x1:wx1+12,y1:arrowY,x2:wx2-12,y2:arrowY,class:"windowArrow"}));
   svg.appendChild(ns("path",{d:`M ${wx1+12} ${arrowY} l 8 -5 M ${wx1+12} ${arrowY} l 8 5 M ${wx2-12} ${arrowY} l -8 -5 M ${wx2-12} ${arrowY} l -8 5`,class:"windowArrow"}));
   txt((wx1+wx2)/2,dateY,`${fmt(win.start)} – ${fmt(win.end)}`,"windowDate","middle");
-  [win.start,win.end].forEach(d=>{const xx=x(d);svg.appendChild(ns("line",{x1:xx,y1:34,x2:xx,y2:base,class:"guideDash"}))});
+  [win.start,win.end].forEach(d=>{const xx=x(d);svg.appendChild(ns("line",{x1:xx,y1:38,x2:xx,y2:base,class:"guideDash"}))});
 
   const now=today();
   if(+now>=x0&&+now<=x1){
     const tx=x(now),exp=parseIteration(DATA.at(-1).iteration)?.end||DATA.at(-1).date;
-    svg.appendChild(ns("line",{x1:tx,y1:34,x2:tx,y2:base,class:"guideDash"}));
+    svg.appendChild(ns("line",{x1:tx,y1:38,x2:tx,y2:base,class:"guideDash"}));
     txt(tx+10,47,`TODAY (${fmt(now)})`,"todayTitle");
     txt(tx+10,65,`${months(now,exp)} months to lease expiration`,"todaySub");
     txt(tx+10,81,`${months(now,win.start)} months to optimal execution window`,"todaySub");
