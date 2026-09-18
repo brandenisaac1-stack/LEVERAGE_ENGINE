@@ -1,125 +1,62 @@
 export function clamp01(t){return Math.max(0,Math.min(1,t))}
 export function lerp(a,b,t){return a+(b-a)*t}
+function logistic01(t,k=11){
+  t=clamp01(t);
+  const f=x=>1/(1+Math.exp(-k*(x-.5)));
+  const lo=f(0),hi=f(1);
+  return (f(t)-lo)/(hi-lo);
+}
+export function levels(data){
+  const t=data.map(d=>d.tenant).filter(Number.isFinite);
+  const l=data.map(d=>d.landlord).filter(Number.isFinite);
+  return {tEarly:t[0],tPeak:Math.max(...t)*.955,tLate:t.at(-1),lEarly:l[0],lLow:Math.min(...l)*1.025,lLate:l.at(-1)};
+}
+export function valueAt(date,data,win){
+  const L=levels(data),x0=+data[0].date,x1=+data.at(-1).date,ws=+win.start,we=+win.end,z=+date;
 
-function pchipSlopes(xs,ys){
-  const n=xs.length,h=[],d=[],m=new Array(n).fill(0);
-  for(let i=0;i<n-1;i++){h[i]=xs[i+1]-xs[i];d[i]=(ys[i+1]-ys[i])/h[i]}
-  if(n===2){m[0]=m[1]=d[0];return m}
+  // The window is an annotation period, NOT a plateau instruction.
+  // The actual peak/trough is localized around the middle of the window.
+  const center=(ws+we)/2;
+  const half=Math.max(1,(we-ws)/2);
 
-  // Shape-preserving interior derivatives (Fritsch-Carlson / PCHIP).
-  for(let i=1;i<n-1;i++){
-    if(d[i-1]===0||d[i]===0||Math.sign(d[i-1])!==Math.sign(d[i])) m[i]=0;
-    else{
-      const w1=2*h[i]+h[i-1],w2=h[i]+2*h[i-1];
-      m[i]=(w1+w2)/(w1/d[i-1]+w2/d[i]);
+  // Strong transitions start before and finish after the window.
+  const preStart=ws-(ws-x0)*.34;
+  const postEnd=we+(x1-we)*.34;
+
+  let tenant,landlord;
+
+  if(z<ws){
+    const p=logistic01((z-preStart)/(ws-preStart),10);
+    const quiet=clamp01((z-x0)/(preStart-x0));
+    const tBase=lerp(L.tEarly,L.tEarly+(L.tPeak-L.tEarly)*.06,quiet*quiet);
+    const lBase=lerp(L.lEarly,L.lEarly-(L.lEarly-L.lLow)*.06,quiet*quiet);
+    tenant=lerp(tBase,L.tPeak*.88,p);
+    landlord=lerp(lBase,L.lLow*1.14,p);
+  }else if(z<=we){
+    // Smooth, narrow, rounded peak/trough. No horizontal shelf.
+    const q=(z-center)/half;                    // -1..1
+    const bell=Math.exp(-2.6*q*q);             // localized rounded crown
+    const shoulder=.88+.12*bell;
+    tenant=L.tPeak*shoulder;
+    landlord=L.lLow*(2-shoulder);
+  }else{
+    const p=logistic01((z-we)/(postEnd-we),10);
+    const tShoulder=L.tPeak*.88;
+    const lShoulder=L.lLow*1.14;
+    const tNearLate=L.tLate+(L.tPeak-L.tLate)*.06;
+    const lNearLate=L.lLate-(L.lLate-L.lLow)*.06;
+    tenant=lerp(tShoulder,tNearLate,p);
+    landlord=lerp(lShoulder,lNearLate,p);
+    if(z>postEnd){
+      const r=clamp01((z-postEnd)/(x1-postEnd));
+      const e=1-Math.pow(1-r,2);
+      tenant=lerp(tNearLate,L.tLate,e);
+      landlord=lerp(lNearLate,L.lLate,e);
     }
   }
-  m[0]=((2*h[0]+h[1])*d[0]-h[0]*d[1])/(h[0]+h[1]);
-  if(Math.sign(m[0])!==Math.sign(d[0]))m[0]=0;
-  else if(Math.sign(d[0])!==Math.sign(d[1])&&Math.abs(m[0])>Math.abs(3*d[0]))m[0]=3*d[0];
-
-  const k=n-1;
-  m[k]=((2*h[k-1]+h[k-2])*d[k-1]-h[k-1]*d[k-2])/(h[k-1]+h[k-2]);
-  if(Math.sign(m[k])!==Math.sign(d[k-1]))m[k]=0;
-  else if(Math.sign(d[k-1])!==Math.sign(d[k-2])&&Math.abs(m[k])>Math.abs(3*d[k-1]))m[k]=3*d[k-1];
-  return m;
+  return {tenant,landlord};
 }
-
-function pchip(xs,ys,x){
-  if(x<=xs[0])return ys[0];
-  if(x>=xs.at(-1))return ys.at(-1);
-  let i=0;
-  while(i<xs.length-2&&x>xs[i+1])i++;
-  const h=xs[i+1]-xs[i],u=(x-xs[i])/h,m=pchipSlopes(xs,ys);
-  const h00=2*u*u*u-3*u*u+1,h10=u*u*u-2*u*u+u,h01=-2*u*u*u+3*u*u,h11=u*u*u-u*u;
-  return h00*ys[i]+h10*h*m[i]+h01*ys[i+1]+h11*h*m[i+1];
-}
-
-export function levels(data){
-  const T=data.map(d=>d.tenant).filter(Number.isFinite);
-  const L=data.map(d=>d.landlord).filter(Number.isFinite);
-  const tMin=Math.min(...T),tMax=Math.max(...T),lMin=Math.min(...L),lMax=Math.max(...L);
-
-  // Live data controls the amplitude/range; visual control points control geometry.
-  const tenantLow=Math.max(tMin,Math.min(T[0],tMin+(tMax-tMin)*.12));
-  const tenantPeak=tMax;
-  const tenantLate=tMin+(tMax-tMin)*.10;
-
-  const landlordHigh=Math.max(L[0],lMin+(lMax-lMin)*.88);
-  const landlordLow=lMin;
-  // Deliberately finish landlord above tenant late.
-  const landlordLate=Math.max(L.at(-1),lMin+(lMax-lMin)*.80);
-
-  return {tenantLow,tenantPeak,tenantLate,landlordHigh,landlordLow,landlordLate};
-}
-
-function controlPoints(data,win){
-  const L=levels(data);
-  const x0=+data[0].date,x1=+data.at(-1).date;
-  const ws=(+win.start-x0)/(x1-x0),we=(+win.end-x0)/(x1-x0),wc=(ws+we)/2;
-
-  // Explicit geometry matching the approved render.
-  // No plateau: only ONE point at the peak/trough.
-  const xs=[
-    0.00,
-    Math.max(.08,ws-.38),
-    Math.max(.12,ws-.22),
-    Math.max(.16,ws-.10),
-    Math.max(.18,ws-.025),
-    wc,
-    Math.min(.82,we+.025),
-    Math.min(.86,we+.10),
-    Math.min(.91,we+.22),
-    Math.min(.96,we+.38),
-    1.00
-  ];
-
-  const tRange=L.tenantPeak-L.tenantLow;
-  const tenant=[
-    L.tenantLow,
-    L.tenantLow+tRange*.06,
-    L.tenantLow+tRange*.18,
-    L.tenantLow+tRange*.48,
-    L.tenantLow+tRange*.78,
-    L.tenantPeak,
-    L.tenantLow+tRange*.78,
-    L.tenantLow+tRange*.47,
-    L.tenantLow+tRange*.20,
-    L.tenantLate+(L.tenantPeak-L.tenantLate)*.05,
-    L.tenantLate
-  ];
-
-  const lRange=L.landlordHigh-L.landlordLow;
-  const landlord=[
-    L.landlordHigh,
-    L.landlordHigh-lRange*.05,
-    L.landlordHigh-lRange*.16,
-    L.landlordHigh-lRange*.46,
-    L.landlordHigh-lRange*.76,
-    L.landlordLow,
-    L.landlordHigh-lRange*.76,
-    L.landlordHigh-lRange*.46,
-    L.landlordHigh-lRange*.17,
-    L.landlordLate-(L.landlordLate-L.landlordLow)*.04,
-    L.landlordLate
-  ];
-
-  // Ensure strictly increasing x coordinates after dynamic placement.
-  for(let i=1;i<xs.length;i++) if(xs[i]<=xs[i-1]) xs[i]=Math.min(.999,xs[i-1]+.002);
-  return {xs,tenant,landlord};
-}
-
-export function valueAt(date,data,win){
-  const x0=+data[0].date,x1=+data.at(-1).date;
-  const t=clamp01((+date-x0)/(x1-x0));
-  const C=controlPoints(data,win);
-  return {
-    tenant:pchip(C.xs,C.tenant,t),
-    landlord:pchip(C.xs,C.landlord,t)
-  };
-}
-
-export function series(data,win,n=900){
+export function series(data,win,n=420){
   const x0=+data[0].date,x1=+data.at(-1).date,out=[];
   for(let i=0;i<n;i++){
     const date=new Date(x0+(x1-x0)*(i/(n-1)));
@@ -128,10 +65,12 @@ export function series(data,win,n=900){
   }
   return out;
 }
-
 export function smoothPath(points){
-  // PCHIP already supplies the smooth geometry. Dense sampling prevents visible segments
-  // and avoids any second spline pass that could introduce overshoot/lumps.
   if(points.length<2)return "";
-  return points.reduce((d,p,i)=>d+(i?` L ${p[0].toFixed(2)} ${p[1].toFixed(2)}`:`M ${p[0].toFixed(2)} ${p[1].toFixed(2)}`),"");
+  let d=`M ${points[0][0]} ${points[0][1]}`;
+  for(let i=0;i<points.length-1;i++){
+    const p0=points[Math.max(0,i-1)],p1=points[i],p2=points[i+1],p3=points[Math.min(points.length-1,i+2)];
+    d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`;
+  }
+  return d;
 }
