@@ -1,62 +1,86 @@
 export function clamp01(t){return Math.max(0,Math.min(1,t))}
 export function lerp(a,b,t){return a+(b-a)*t}
-function logistic01(t,k=11){
+
+function smoothstep(t){
   t=clamp01(t);
-  const f=x=>1/(1+Math.exp(-k*(x-.5)));
+  return t*t*(3-2*t);
+}
+function logistic(x){
+  return 1/(1+Math.exp(-x));
+}
+function normalizedLogistic(t,center,steepness){
+  t=clamp01(t);
+  const f=x=>logistic((x-center)*steepness);
   const lo=f(0),hi=f(1);
   return (f(t)-lo)/(hi-lo);
 }
-export function levels(data){
-  const t=data.map(d=>d.tenant).filter(Number.isFinite);
-  const l=data.map(d=>d.landlord).filter(Number.isFinite);
-  return {tEarly:t[0],tPeak:Math.max(...t)*.955,tLate:t.at(-1),lEarly:l[0],lLow:Math.min(...l)*1.025,lLate:l.at(-1)};
+function bell(t,center,width){
+  const z=(t-center)/width;
+  return Math.exp(-0.5*z*z);
 }
+
+export function levels(data){
+  const tenant=data.map(d=>d.tenant).filter(Number.isFinite);
+  const landlord=data.map(d=>d.landlord).filter(Number.isFinite);
+
+  const tMin=Math.min(...tenant),tMax=Math.max(...tenant);
+  const lMin=Math.min(...landlord),lMax=Math.max(...landlord);
+
+  return {
+    tenantEarly:tenant[0],
+    tenantPeak:tMax,
+    // Force the late tenant state toward the lower live-data regime.
+    tenantLate:Math.max(tMin,Math.min(tenant.at(-1),tMin+(tMax-tMin)*0.18)),
+
+    landlordEarly:landlord[0],
+    landlordTrough:lMin,
+    // Landlord MUST finish above tenant. Use live landlord ending value as a floor,
+    // then ensure a visible crossover margin.
+    landlordLate:Math.max(landlord.at(-1),lMin+(lMax-lMin)*0.72)
+  };
+}
+
 export function valueAt(date,data,win){
-  const L=levels(data),x0=+data[0].date,x1=+data.at(-1).date,ws=+win.start,we=+win.end,z=+date;
+  const L=levels(data);
+  const x0=+data[0].date,x1=+data.at(-1).date,z=+date;
+  const t=clamp01((z-x0)/(x1-x0));
 
-  // The window is an annotation period, NOT a plateau instruction.
-  // The actual peak/trough is localized around the middle of the window.
-  const center=(ws+we)/2;
-  const half=Math.max(1,(we-ws)/2);
+  const ws=clamp01((+win.start-x0)/(x1-x0));
+  const we=clamp01((+win.end-x0)/(x1-x0));
+  const wc=(ws+we)/2;
 
-  // Strong transitions start before and finish after the window.
-  const preStart=ws-(ws-x0)*.34;
-  const postEnd=we+(x1-we)*.34;
+  // Rise begins gently, then accelerates sharply immediately before the window.
+  // Fall begins sharply around the back side of the window.
+  // These are smooth logistic functions, so there are no corners or lumps.
+  const riseCenter=Math.max(.05,ws-.055);
+  const fallCenter=Math.min(.95,we+.055);
+  const rise=normalizedLogistic(t,riseCenter,18);
+  const fall=normalizedLogistic(t,fallCenter,18);
 
-  let tenant,landlord;
+  // Smooth leverage "advantage" pulse: 0 early, ~1 around the window, 0 late.
+  // Multiplication prevents a horizontal shelf.
+  let pulse=rise*(1-fall);
 
-  if(z<ws){
-    const p=logistic01((z-preStart)/(ws-preStart),10);
-    const quiet=clamp01((z-x0)/(preStart-x0));
-    const tBase=lerp(L.tEarly,L.tEarly+(L.tPeak-L.tEarly)*.06,quiet*quiet);
-    const lBase=lerp(L.lEarly,L.lEarly-(L.lEarly-L.lLow)*.06,quiet*quiet);
-    tenant=lerp(tBase,L.tPeak*.88,p);
-    landlord=lerp(lBase,L.lLow*1.14,p);
-  }else if(z<=we){
-    // Smooth, narrow, rounded peak/trough. No horizontal shelf.
-    const q=(z-center)/half;                    // -1..1
-    const bell=Math.exp(-2.6*q*q);             // localized rounded crown
-    const shoulder=.88+.12*bell;
-    tenant=L.tPeak*shoulder;
-    landlord=L.lLow*(2-shoulder);
-  }else{
-    const p=logistic01((z-we)/(postEnd-we),10);
-    const tShoulder=L.tPeak*.88;
-    const lShoulder=L.lLow*1.14;
-    const tNearLate=L.tLate+(L.tPeak-L.tLate)*.06;
-    const lNearLate=L.lLate-(L.lLate-L.lLow)*.06;
-    tenant=lerp(tShoulder,tNearLate,p);
-    landlord=lerp(lShoulder,lNearLate,p);
-    if(z>postEnd){
-      const r=clamp01((z-postEnd)/(x1-postEnd));
-      const e=1-Math.pow(1-r,2);
-      tenant=lerp(tNearLate,L.tLate,e);
-      landlord=lerp(lNearLate,L.lLate,e);
-    }
-  }
+  // Add one subtle rounded crown centered in the execution window.
+  // This creates a true peak/trough instead of a horizon.
+  const crown=bell(t,wc,Math.max(.035,(we-ws)*.34));
+  pulse=clamp01(pulse*(0.90+0.10*crown));
+
+  // Late-state transition begins after the leverage pulse has materially decayed.
+  const late=normalizedLogistic(t,Math.min(.96,we+.17),12);
+
+  // Tenant: early -> localized peak -> low late state.
+  const tenantBase=lerp(L.tenantEarly,L.tenantLate,late);
+  const tenant=tenantBase+(L.tenantPeak-tenantBase)*pulse;
+
+  // Landlord: exact narrative inverse -> localized trough -> strong late recovery.
+  const landlordBase=lerp(L.landlordEarly,L.landlordLate,late);
+  const landlord=landlordBase-(landlordBase-L.landlordTrough)*pulse;
+
   return {tenant,landlord};
 }
-export function series(data,win,n=420){
+
+export function series(data,win,n=520){
   const x0=+data[0].date,x1=+data.at(-1).date,out=[];
   for(let i=0;i<n;i++){
     const date=new Date(x0+(x1-x0)*(i/(n-1)));
@@ -65,12 +89,12 @@ export function series(data,win,n=420){
   }
   return out;
 }
+
 export function smoothPath(points){
+  // Dense analytic sampling means a simple polyline is already visually smooth.
+  // Using straight joins avoids Catmull-Rom overshoot/lumps.
   if(points.length<2)return "";
   let d=`M ${points[0][0]} ${points[0][1]}`;
-  for(let i=0;i<points.length-1;i++){
-    const p0=points[Math.max(0,i-1)],p1=points[i],p2=points[i+1],p3=points[Math.min(points.length-1,i+2)];
-    d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`;
-  }
+  for(let i=1;i<points.length;i++)d+=` L ${points[i][0]} ${points[i][1]}`;
   return d;
 }

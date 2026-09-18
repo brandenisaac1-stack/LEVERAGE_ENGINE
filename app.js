@@ -50,7 +50,11 @@ function render(){
   const win=windowBounds(),P=series(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight;
   // Dedicated 82px header band. Curves begin BELOW it.
   const m={l:58,r:20,t:108,b:32},pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
-  const ymin=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3,ymax=Math.ceil(Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5+3;
+  const plottedMin=Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
+  const plottedMax=Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
+  // Give the leverage story real vertical breathing room: 10 points below/above.
+  const ymin=Math.floor((plottedMin-10)/5)*5;
+  const ymax=Math.ceil((plottedMax+10)/5)*5;
   const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(ymax-v)/(ymax-ymin)*ph,base=y(ymin);
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
 
