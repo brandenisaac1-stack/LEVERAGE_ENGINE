@@ -99,13 +99,13 @@ svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
   const lastTick=Math.floor(ymax/tickStep)*tickStep;
 
   // Explicit true domain endpoints so you can SEE the automatic padding.
-  txt(m.l-8,y(ymax)+3,(Math.round(ymax*10)/10).toString(),"axis","end");
+  
   for(let v=firstTick;v<=lastTick+1e-9;v+=tickStep){
     if(Math.abs(v-ymin)<.01||Math.abs(v-ymax)<.01)continue;
     svg.appendChild(ns("line",{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),class:"grid"}));
     txt(m.l-8,y(v)+3,(Math.round(v*10)/10).toString(),"axis","end");
   }
-  if(Math.abs(ymin-ymax)>.01) txt(m.l-8,y(ymin)+3,(Math.round(ymin*10)/10).toString(),"axis","end");
+  
 
   for(let yr=P[0].date.getFullYear();yr<=P.at(-1).date.getFullYear();yr++){const d=new Date(`${yr}-01-01T00:00:00`);if(+d>=x0&&+d<=x1){svg.appendChild(ns("line",{x1:x(d),y1:m.t,x2:x(d),y2:base,class:"grid"}));txt(x(d),H-10,"Jan "+yr,"axis","middle")}}
 
