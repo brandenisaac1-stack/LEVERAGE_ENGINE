@@ -49,10 +49,9 @@ function render(){
   if(!DATA.length)return;
   const win=windowBounds(),P=series(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight;
   // Dedicated 82px header band. Curves begin BELOW it.
-  const m={l:58,r:20,t:108,b:32},pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
+  const m={l:68,r:24,t:126,b:38},pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
   const plottedMin=Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
   const plottedMax=Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
-  // Give the leverage story real vertical breathing room: 10 points below/above.
   const ymin=Math.floor((plottedMin-10)/5)*5;
   const ymax=Math.ceil((plottedMax+10)/5)*5;
   const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(ymax-v)/(ymax-ymin)*ph,base=y(ymin);
@@ -65,23 +64,23 @@ function render(){
   svg.appendChild(ns("rect",{x:wx1,y:m.t,width:Math.max(2,wx2-wx1),height:ph,class:"windowShade"}));
 
   const tp=P.map(d=>[x(d.date),y(d.plotTenant)]),lp=P.map(d=>[x(d.date),y(d.plotLandlord)]),tl=smoothPath(tp),ll=smoothPath(lp);
-  svg.appendChild(ns("path",{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:"#b50019","fill-opacity":".46"}));
-  svg.appendChild(ns("path",{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:"#4b8584","fill-opacity":".42"}));
-  svg.appendChild(ns("path",{d:ll,fill:"none",stroke:"#f21e32","stroke-width":"2.6"}));
-  svg.appendChild(ns("path",{d:tl,fill:"none",stroke:"#69c9c6","stroke-width":"2.6"}));
+  svg.appendChild(ns("path",{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:"#b50019","fill-opacity":".52"}));
+  svg.appendChild(ns("path",{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:"#4b8584","fill-opacity":".48"}));
+  svg.appendChild(ns("path",{d:ll,fill:"none",stroke:"#f21e32","stroke-width":"3.25"}));
+  svg.appendChild(ns("path",{d:tl,fill:"none",stroke:"#69c9c6","stroke-width":"3.25"}));
 
   // Dedicated header band: impossible for curves to intersect these labels.
-  const headerTitleY=45,arrowY=64,dateY=83;
+  const headerTitleY=42,arrowY=65,dateY=91;
   txt((wx1+wx2)/2,headerTitleY,"OPTIMAL EXECUTION WINDOW","windowTitle","middle");
   svg.appendChild(ns("line",{x1:wx1+12,y1:arrowY,x2:wx2-12,y2:arrowY,class:"windowArrow"}));
   svg.appendChild(ns("path",{d:`M ${wx1+12} ${arrowY} l 8 -5 M ${wx1+12} ${arrowY} l 8 5 M ${wx2-12} ${arrowY} l -8 -5 M ${wx2-12} ${arrowY} l -8 5`,class:"windowArrow"}));
   txt((wx1+wx2)/2,dateY,`${fmt(win.start)} – ${fmt(win.end)}`,"windowDate","middle");
-  [win.start,win.end].forEach(d=>{const xx=x(d);svg.appendChild(ns("line",{x1:xx,y1:38,x2:xx,y2:base,class:"guideDash"}))});
+  [win.start,win.end].forEach(d=>{const xx=x(d);svg.appendChild(ns("line",{x1:xx,y1:34,x2:xx,y2:base,class:"guideDash"}))});
 
   const now=today();
   if(+now>=x0&&+now<=x1){
     const tx=x(now),exp=parseIteration(DATA.at(-1).iteration)?.end||DATA.at(-1).date;
-    svg.appendChild(ns("line",{x1:tx,y1:38,x2:tx,y2:base,class:"guideDash"}));
+    svg.appendChild(ns("line",{x1:tx,y1:34,x2:tx,y2:base,class:"guideDash"}));
     txt(tx+10,47,`TODAY (${fmt(now)})`,"todayTitle");
     txt(tx+10,65,`${months(now,exp)} months to lease expiration`,"todaySub");
     txt(tx+10,81,`${months(now,win.start)} months to optimal execution window`,"todaySub");
