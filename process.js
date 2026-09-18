@@ -1,3 +1,4 @@
-// Reserved process module.
-// Intentionally not imported by the recovery build.
-// The proven process renderer currently lives in app.js.
+// CHRONOS recovery compatibility module.
+// Production process overlay rendering is self-contained in index.html.
+export function processStages(){ return []; }
+export function drawProcess(){ return undefined; }

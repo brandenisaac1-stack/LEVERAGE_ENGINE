@@ -1,0 +1,30 @@
+{
+  "index.html": {
+    "bytes": 22214,
+    "sha256": "7144c0937fd5f047006177b5a1dd50e4c3a2d2acabfbe07cd5763b25e4848878"
+  },
+  "oauth-callback.html": {
+    "bytes": 724,
+    "sha256": "a42ebfee75d99387818b542885ff7c6a1c4e1d13a25b36964d27c9933d8ad0b1"
+  },
+  "app.js": {
+    "bytes": 303,
+    "sha256": "d760e604807d66560acf5a2555a37e7c75360e5cecbfe3047f56a09e8f8d1842"
+  },
+  "curves.js": {
+    "bytes": 243,
+    "sha256": "2fbeb568447fa27179acb1ed50ff2a3159b9620c0642860b52bfc5fe8ecc4aef"
+  },
+  "process.js": {
+    "bytes": 212,
+    "sha256": "0dbd4bb211189006ae8c12e7f6f1f0cba3ae5d90feef757dd529a9c05f5ccef7"
+  },
+  "annotations.js": {
+    "bytes": 292,
+    "sha256": "08d0d716bf03167f69f7010c77c85a35285d3ccc54b4f6974468b4ecbac58296"
+  },
+  "styles.css": {
+    "bytes": 185,
+    "sha256": "bd2f4ac44fa45065d540b4403b87912d30bfd8edb9f9a5428b955aa48d27d886"
+  }
+}
