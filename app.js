@@ -50,8 +50,10 @@ function render(){
   const win=windowBounds(),P=series(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight;
   // Dedicated 82px header band. Curves begin BELOW it.
   const m={l:68,r:24,t:126,b:38},pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
-  const plottedMin=Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
-  const plottedMax=Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
+  const plottedValues=P.flatMap(d=>[d.plotTenant,d.plotLandlord]);
+  const plottedMin=Math.min(...plottedValues);
+  const plottedMax=Math.max(...plottedValues);
+  // EXACT requested scale: 10 leverage points below and above the FINAL rendered curves.
   const ymin=Math.floor((plottedMin-10)/5)*5;
   const ymax=Math.ceil((plottedMax+10)/5)*5;
   const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(ymax-v)/(ymax-ymin)*ph,base=y(ymin);
