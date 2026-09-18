@@ -47,17 +47,66 @@ async function load(){
 }
 function render(){
   if(!DATA.length)return;
-  const win=windowBounds(),P=series(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight;
-  // Dedicated 82px header band. Curves begin BELOW it.
-  const m={l:68,r:24,t:126,b:38},pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
-  const plottedMin=Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
-  const plottedMax=Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]));
-  const ymin=Math.floor((plottedMin-10)/5)*5;
-  const ymax=Math.ceil((plottedMax+10)/5)*5;
-  const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(ymax-v)/(ymax-ymin)*ph,base=y(ymin);
-  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
 
-  for(let v=Math.ceil(ymin/5)*5;v<=Math.floor(ymax/5)*5;v+=5){svg.appendChild(ns("line",{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),class:"grid"}));txt(m.l-8,y(v)+3,v,"axis","end")}
+  const win=windowBounds();
+  const P=series(DATA,win);
+  const W=wrap.clientWidth;
+  const H=wrap.clientHeight;
+
+  // Layout only. This does NOT determine leverage scale.
+  const m={l:68,r:24,t:126,b:38};
+  const pw=W-m.l-m.r;
+  const ph=H-m.t-m.b;
+  const x0=+P[0].date;
+  const x1=+P.at(-1).date;
+
+  // SINGLE SOURCE OF TRUTH FOR THE Y DOMAIN.
+  // Measure the FINAL series that is actually about to be drawn.
+  const renderedValues=[];
+  for(const point of P){
+    if(Number.isFinite(point.plotTenant)) renderedValues.push(point.plotTenant);
+    if(Number.isFinite(point.plotLandlord)) renderedValues.push(point.plotLandlord);
+  }
+  if(!renderedValues.length) throw new Error("No finite rendered leverage values.");
+
+  const renderedMin=Math.min(...renderedValues);
+  const renderedMax=Math.max(...renderedValues);
+
+  // Automatic for every client/group. Exactly 10 leverage points of breathing room.
+  // No floor(), ceil(), fixed 35/100, or tick rounding is allowed to change this domain.
+  const axisPadding=10;
+  const ymin=Math.max(0,renderedMin-axisPadding);
+  const ymax=Math.min(100,renderedMax+axisPadding);
+
+  const x=d=>m.l+((+d-x0)/(x1-x0))*pw;
+  const y=v=>m.t+((ymax-v)/(ymax-ymin))*ph;
+  const base=y(ymin);
+
+  // Visible verification of the ACTIVE scale; proves what this running build is using.
+  status.textContent=`Live · ${DATA.length} chart rows · Y ${Math.round(ymin*10)/10}–${Math.round(ymax*10)/10}`;
+
+svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML="";
+
+  {
+    const tickStep=5;
+    const firstTick=Math.ceil(ymin/tickStep)*tickStep;
+    const lastTick=Math.floor(ymax/tickStep)*tickStep;
+    // Y-axis ticks are labels INSIDE the exact domain; they never redefine it.
+  // Use a readable step based on the actual domain span.
+  const ySpan=ymax-ymin;
+  const tickStep=ySpan<=35?5:ySpan<=70?10:20;
+  const firstTick=Math.ceil(ymin/tickStep)*tickStep;
+  const lastTick=Math.floor(ymax/tickStep)*tickStep;
+
+  // Explicit true domain endpoints so you can SEE the automatic padding.
+  txt(m.l-8,y(ymax)+3,(Math.round(ymax*10)/10).toString(),"axis","end");
+  for(let v=firstTick;v<=lastTick+1e-9;v+=tickStep){
+    if(Math.abs(v-ymin)<.01||Math.abs(v-ymax)<.01)continue;
+    svg.appendChild(ns("line",{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),class:"grid"}));
+    txt(m.l-8,y(v)+3,(Math.round(v*10)/10).toString(),"axis","end");
+  }
+  if(Math.abs(ymin-ymax)>.01) txt(m.l-8,y(ymin)+3,(Math.round(ymin*10)/10).toString(),"axis","end");
+
   for(let yr=P[0].date.getFullYear();yr<=P.at(-1).date.getFullYear();yr++){const d=new Date(`${yr}-01-01T00:00:00`);if(+d>=x0&&+d<=x1){svg.appendChild(ns("line",{x1:x(d),y1:m.t,x2:x(d),y2:base,class:"grid"}));txt(x(d),H-10,"Jan "+yr,"axis","middle")}}
 
   const wx1=x(win.start),wx2=x(win.end);
