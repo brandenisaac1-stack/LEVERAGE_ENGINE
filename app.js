@@ -21,7 +21,7 @@ async function load(){center.hidden=false;msg.textContent='Authenticated. Loadin
 function curvePath(pts){if(pts.length<2)return'';let d=`M ${pts[0][0]} ${pts[0][1]}`;for(let i=0;i<pts.length-1;i++){let p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`}return d}
 function render(){
   if(!DATA.length){svg.innerHTML='';return}
-  const P=shapedSeries(),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
+  const P=shapedSeries(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
   const pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
   const min=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3;
   const max=Math.ceil(Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5+3;
@@ -64,10 +64,10 @@ function render(){
   txt((wx1+wx2)/2,m.t+45,`${fmt(win.start)} – ${fmt(win.end)}`,'t1','middle');
 
   // Clickable live-data anchors. The full curve never disappears.
-  DATA.forEach((d,i)=>{const v=curveValueAt(d.date),h=ns('circle',{cx:x(d.date),cy:y(v.tenant),r:10,fill:'transparent',style:'cursor:pointer'});h.addEventListener('click',()=>choose(i));svg.appendChild(h)});
+  DATA.forEach((d,i)=>{const v=curveValueAt(d.date,DATA,win),h=ns('circle',{cx:x(d.date),cy:y(v.tenant),r:10,fill:'transparent',style:'cursor:pointer'});h.addEventListener('click',()=>choose(i));svg.appendChild(h)});
 
   if(selected>=0&&DATA[selected]){
-    const d=DATA[selected],v=curveValueAt(d.date),sx=x(d.date),sy=y(v.tenant),ly=y(v.landlord);
+    const d=DATA[selected],v=curveValueAt(d.date,DATA,win),sx=x(d.date),sy=y(v.tenant),ly=y(v.landlord);
     svg.appendChild(ns('line',{x1:sx,y1:m.t+52,x2:sx,y2:base,class:'sel'}));
     svg.appendChild(ns('circle',{cx:sx,cy:sy,r:5,fill:'#16e6e9',class:'dot'}));
     svg.appendChild(ns('circle',{cx:sx,cy:ly,r:5,fill:'#f21e32',class:'dot'}));
