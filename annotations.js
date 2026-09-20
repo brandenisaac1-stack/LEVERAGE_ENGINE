@@ -1,1 +1,4 @@
-// Compatibility only. Production annotations are inline in index.html.\nexport {};\n
+// Iteration annotation renderer.
+function showPopup({d,sx,sy,W,H,m,popup,annotationsEnabled,esc,money}){if(!annotationsEnabled){popup.hidden=true;return}let info=[d.phase,d.action,d.chrono].filter(Boolean).join(' · ');popup.innerHTML=`<div class="title">${esc(d.iteration||fmt(d.date))}</div><div class="phase">${esc(info)}</div><div class="metric"><span>Tenant leverage</span><strong>${d.tenant.toFixed(1)}</strong></div><div class="metric"><span>Landlord leverage</span><strong>${d.landlord.toFixed(1)}</strong></div>${d.alev!=null?`<div class="metric"><span>Action leverage</span><strong>${(+d.alev).toFixed(1)}</strong></div>`:''}${d.rent!=null?`<div class="metric"><span>Effective rent</span><strong>$${(+d.rent).toFixed(2)}/SF</strong></div>`:''}${d.wait!=null?`<div class="metric"><span>Net wait value</span><strong>${money(d.wait)}/day</strong></div>`:''}${d.read?`<div class="read">${esc(d.read)}</div>`:''}`;popup.hidden=false;popup.style.left=Math.max(8,sx<W*.68?sx+14:sx-404)+'px';popup.style.top=Math.max(m.t+52,Math.min(H-235,sy-25))+'px'}
+
+export { showPopup };
