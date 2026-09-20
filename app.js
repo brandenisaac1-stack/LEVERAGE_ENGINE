@@ -1,5 +1,5 @@
 import { shapedSeries, curveValueAt } from "./curves.js";
-import { drawProcess } from "./process.js";
+import { drawProcess } from "./process.js?v=20260920-process2";
 import { showPopup } from "./annotations.js";
 const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;const money=v=>Number.isFinite(+v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(+v):'—';const months=(a,b)=>Math.max(0,Math.round((b-a)/2629800000));const ns=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e};const txt=(x,y,s,cl,an='start')=>{const t=ns('text',{x,y,class:cl,'text-anchor':an});t.textContent=s;svg.appendChild(t);return t};function state(s,c=''){status.textContent=s;status.className='status '+c}
@@ -44,29 +44,31 @@ function render(){
 
   if($('process').checked)drawProcess({data:DATA,x,m,W,H,x0,x1,win,svg,ns,txt,scheduleEl:$('schedule')});
 
-  // TODAY is always anchored to the actual current date.
-  // Its annotation is collision-aware so it never overwrites the execution-window title/arrow/dates.
+  // TODAY remains anchored to the actual current date, but its narrative lives
+  // in a dedicated lower-chart card so it can never collide with the execution-window header.
   const now=activeDate();
   if(+now>=x0&&+now<=x1){
     const tx=x(now),exp=parseIteration(DATA.at(-1).iteration)?.end||DATA.at(-1).date;
     const insideWindow=+now>=+win.start&&+now<=+win.end;
-    const nearWindow=tx>=wx1-190&&tx<=wx2+190;
+    const afterWindow=+now>+win.end;
     svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,class:'guideDash'}));
 
-    let labelX=tx+8,labelY=m.t+13,anchor='start';
-    if(insideWindow||nearWindow){
-      // Window owns the centered top lane. TODAY moves to the nearest clear side.
-      const roomLeft=wx1-m.l,roomRight=(W-m.r)-wx2;
-      if(roomLeft>=roomRight){
-        labelX=Math.max(m.l+8,wx1-18); anchor='end';
-      }else{
-        labelX=Math.min(W-m.r-8,wx2+18); anchor='start';
-      }
-      labelY=m.t+64;
-    }
-    txt(labelX,labelY,`TODAY (${fmt(now)})`,'t1',anchor);
-    txt(labelX,labelY+15,`${months(now,exp)} months to lease expiration`,'t2',anchor);
-    txt(labelX,labelY+28,insideWindow?'INSIDE OPTIMAL EXECUTION WINDOW':`${months(now,win.start)} months to optimal execution window`,'t2',anchor);
+    const cardW=Math.min(310,Math.max(235,pw*.18)),cardH=58;
+    const cardX=Math.max(m.l+8,Math.min(W-m.r-cardW-8,tx-cardW/2));
+    const cardY=base-cardH-10;
+    svg.appendChild(ns('rect',{
+      x:cardX,y:cardY,width:cardW,height:cardH,rx:6,
+      fill:'#071321','fill-opacity':'.94',
+      stroke:'#16e6e9','stroke-width':'1.2','stroke-opacity':'.72'
+    }));
+    txt(cardX+10,cardY+16,`TODAY · ${fmt(now)}`,'t1');
+    txt(cardX+10,cardY+32,`${months(now,exp)} months to lease expiration`,'t2');
+    const timing=insideWindow
+      ? 'INSIDE OPTIMAL EXECUTION WINDOW'
+      : afterWindow
+        ? `EXECUTION WINDOW PASSED · ${months(win.end,now)} months ago`
+        : `${months(now,win.start)} months to optimal execution window`;
+    txt(cardX+10,cardY+47,timing,'t2');
   }
 
   // Clean window: vertical boundaries + ONE date treatment below the arrow.
