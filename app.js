@@ -6,18 +6,20 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function pick(fs,cands,req=false){const m=new Map(fs.map(f=>[f.name.toLowerCase(),f.name]));for(const c of cands){if(m.has(c.toLowerCase()))return m.get(c.toLowerCase())}if(req)throw new Error('Required field missing: '+cands.join(' / '));return null}function val(a,k){return fields[k]?a[fields[k]]:null}
 function parseIteration(s){const m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*[-–—]\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(!m)return null;const yr=y=>+y<100?2000+(+y):+y;return{start:new Date(yr(m[3]),+m[1]-1,+m[2]),end:new Date(yr(m[6]),+m[4]-1,+m[5])}}
 function windowBounds(){
-  // Authoritative execution-window boundaries come from the live ArcGIS
-  // EXECUTION_WINDOW marker paired with that row's Chart_dates value.
+  // EXACT SAME-ROW RULE:
+  // START uses Chart_dates from the row containing START.
+  // END uses Chart_dates from the row containing END.
+  // No next-row lookup, no iteration end-date interpretation, no offset.
   const marker=v=>String(v??'').trim().toUpperCase();
-  const starts=DATA.filter(d=>marker(d.executionWindow)==='START');
-  const ends=DATA.filter(d=>marker(d.executionWindow)==='END');
+  const startRows=DATA.filter(d=>marker(d.executionWindow)==='START');
+  const endRows=DATA.filter(d=>marker(d.executionWindow)==='END');
 
-  if(starts.length!==1 || ends.length!==1){
-    throw new Error(`EXECUTION_WINDOW requires exactly one START and one END; found START=${starts.length}, END=${ends.length}.`);
+  if(startRows.length!==1 || endRows.length!==1){
+    throw new Error(`EXECUTION_WINDOW requires exactly one START and one END; found START=${startRows.length}, END=${endRows.length}.`);
   }
 
-  const start=new Date(+starts[0].date);
-  const end=new Date(+ends[0].date);
+  const start=new Date(+startRows[0].date);
+  const end=new Date(+endRows[0].date);
 
   if(!Number.isFinite(+start) || !Number.isFinite(+end)){
     throw new Error('EXECUTION_WINDOW START/END rows must contain valid Chart_dates.');
