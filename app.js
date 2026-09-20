@@ -16,7 +16,7 @@ function windowBounds(){
 function activeDate(){const d=new Date();d.setHours(0,0,0,0);return d}
 async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configuration','err');msg.innerHTML='Missing clientId or service URL.';return}const OAuthInfo=await $arcgis.import('@arcgis/core/identity/OAuthInfo.js');idm=await $arcgis.import('@arcgis/core/identity/IdentityManager.js');FeatureLayer=await $arcgis.import('@arcgis/core/layers/FeatureLayer.js');const info=new OAuthInfo({appId:CFG.clientId,portalUrl:CFG.portal,popup:true,popupCallbackUrl:'oauth-callback.html',flowType:'auto'});idm.registerOAuthInfos([info]);try{await idm.checkSignInStatus(CFG.portal+'/sharing/rest');await load()}catch(e){$('login').hidden=false;$('logout').hidden=true;select.disabled=true;$('clear').disabled=true;center.hidden=false;popup.hidden=true;state('Sign in required','warn')}}
 async function signIn(){try{state('Opening ArcGIS sign-in…','warn');$('login').disabled=true;$('centerLogin').disabled=true;await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);$('login').hidden=false;$('logout').hidden=true;state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}finally{$('login').disabled=false;$('centerLogin').disabled=false}}
-async function load(){center.hidden=false;msg.textContent='Authenticated. Loading protected chart data…';state('Loading protected layer…','warn');const layer=new FeatureLayer({url:CFG.service});await layer.load();fields={date:pick(layer.fields,['Chart_dates','chart_dates','chart_date'],true),tenant:pick(layer.fields,['Decision_Curve_0to100','decision_curve_0to100','decision_0to100'],true),landlord:pick(layer.fields,['plot_LL','plot_ll'],true),iteration:pick(layer.fields,['comb_iter','iteration']),phase:pick(layer.fields,['Phases','phase']),action:pick(layer.fields,['ACTION_POINT','action_point']),rent:pick(layer.fields,['ACTION_EFFECTIVE_RENT','action_effective_rent']),alev:pick(layer.fields,['ACTION_LEVERAGE','action_leverage']),wait:pick(layer.fields,['NET_WAIT_VALUE_DAY','net_wait_value_day']),chrono:pick(layer.fields,['CHRONOS_ACTION','chronos_action']),read:pick(layer.fields,['chronos_read','economic_read']),npvToday:pick(layer.fields,['ACTION_NPV_CURRENT','action_npv_current']),npvExec:pick(layer.fields,['ACTION_NPV_EXEC_ADJUSTED','action_npv_exec_adjusted']),npvDelta:pick(layer.fields,['ACTION_NPV_TIMING_DELTA','action_npv_timing_delta'])};const out=[...new Set(Object.values(fields).filter(Boolean))];const q=layer.createQuery();q.where=`${fields.tenant} IS NOT NULL AND ${fields.date} IS NOT NULL`;q.outFields=out;q.returnGeometry=false;q.orderByFields=[`${fields.date} ASC`];const r=await layer.queryFeatures(q);DATA=r.features.map(f=>{const a=f.attributes;let t=+val(a,'tenant');if(t<=1.5)t*=100;return{date:new Date(val(a,'date')),tenant:t,landlord:+val(a,'landlord'),iteration:val(a,'iteration'),phase:val(a,'phase'),action:val(a,'action'),rent:val(a,'rent'),alev:val(a,'alev'),wait:val(a,'wait'),chrono:val(a,'chrono'),read:val(a,'read'),npvToday:val(a,'npvToday'),npvExec:val(a,'npvExec'),npvDelta:val(a,'npvDelta')}}).filter(d=>Number.isFinite(+d.date)&&Number.isFinite(d.tenant)&&Number.isFinite(d.landlord)).sort((a,b)=>a.date-b.date);if(DATA.length<CFG.endRow)throw new Error(`Only ${DATA.length} chart rows returned; windowEndRow is ${CFG.endRow}.`);select.innerHTML='<option value="-1">— none —</option>'+DATA.map((d,i)=>`<option value="${i}">${esc(d.iteration||fmt(d.date))}</option>`).join('');$('login').hidden=true;$('logout').hidden=false;select.disabled=false;$('clear').disabled=false;center.hidden=true;state(`Live · ${DATA.length} chart rows`,'ok');if(CFG.selected){selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim());select.value=String(selected)}render();updateImpact()}
+async function load(){center.hidden=false;msg.textContent='Authenticated. Loading protected chart data…';state('Loading protected layer…','warn');const layer=new FeatureLayer({url:CFG.service});await layer.load();fields={date:pick(layer.fields,['Chart_dates','chart_dates','chart_date'],true),tenant:pick(layer.fields,['Decision_Curve_0to100','decision_curve_0to100','decision_0to100'],true),landlord:pick(layer.fields,['plot_LL','plot_ll'],true),iteration:pick(layer.fields,['comb_iter','iteration']),phase:pick(layer.fields,['Phases','phase']),processStage:pick(layer.fields,['PROCESS_STAGE','process_stage','Process_Stage','ProcessStage']),action:pick(layer.fields,['ACTION_POINT','action_point']),rent:pick(layer.fields,['ACTION_EFFECTIVE_RENT','action_effective_rent']),alev:pick(layer.fields,['ACTION_LEVERAGE','action_leverage']),wait:pick(layer.fields,['NET_WAIT_VALUE_DAY','net_wait_value_day']),chrono:pick(layer.fields,['CHRONOS_ACTION','chronos_action']),read:pick(layer.fields,['chronos_read','economic_read']),npvToday:pick(layer.fields,['ACTION_NPV_CURRENT','action_npv_current']),npvExec:pick(layer.fields,['ACTION_NPV_EXEC_ADJUSTED','action_npv_exec_adjusted']),npvDelta:pick(layer.fields,['ACTION_NPV_TIMING_DELTA','action_npv_timing_delta'])};const out=[...new Set(Object.values(fields).filter(Boolean))];const q=layer.createQuery();q.where=`${fields.tenant} IS NOT NULL AND ${fields.date} IS NOT NULL`;q.outFields=out;q.returnGeometry=false;q.orderByFields=[`${fields.date} ASC`];const r=await layer.queryFeatures(q);DATA=r.features.map(f=>{const a=f.attributes;let t=+val(a,'tenant');if(t<=1.5)t*=100;return{date:new Date(val(a,'date')),tenant:t,landlord:+val(a,'landlord'),iteration:val(a,'iteration'),phase:val(a,'phase'),processStage:val(a,'processStage'),action:val(a,'action'),rent:val(a,'rent'),alev:val(a,'alev'),wait:val(a,'wait'),chrono:val(a,'chrono'),read:val(a,'read'),npvToday:val(a,'npvToday'),npvExec:val(a,'npvExec'),npvDelta:val(a,'npvDelta')}}).filter(d=>Number.isFinite(+d.date)&&Number.isFinite(d.tenant)&&Number.isFinite(d.landlord)).sort((a,b)=>a.date-b.date);if(DATA.length<CFG.endRow)throw new Error(`Only ${DATA.length} chart rows returned; windowEndRow is ${CFG.endRow}.`);select.innerHTML='<option value="-1">— none —</option>'+DATA.map((d,i)=>`<option value="${i}">${esc(d.iteration||fmt(d.date))}</option>`).join('');$('login').hidden=true;$('logout').hidden=false;select.disabled=false;$('clear').disabled=false;center.hidden=true;state(`Live · ${DATA.length} chart rows`,'ok');if(CFG.selected){selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim());select.value=String(selected)}render();updateImpact()}
 function curvePath(pts){if(pts.length<2)return'';let d=`M ${pts[0][0]} ${pts[0][1]}`;for(let i=0;i<pts.length-1;i++){let p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`}return d}
 function render(){
   if(!DATA.length){svg.innerHTML='';return}
@@ -42,16 +42,31 @@ function render(){
   svg.appendChild(ns('path',{d:ll,fill:'none',stroke:'#f21e32','stroke-width':'2.35'}));
   svg.appendChild(ns('path',{d:tl,fill:'none',stroke:'#69c9c6','stroke-width':'2.35'}));
 
-  if($('process').checked)drawProcess({x,m,W,H,x0,x1,win,svg,ns,txt});
+  if($('process').checked)drawProcess({data:DATA,x,m,W,H,x0,x1,win,svg,ns,txt,scheduleEl:$('schedule')});
 
-  // TODAY is always TODAY. Iteration selection never moves this guide.
+  // TODAY is always anchored to the actual current date.
+  // Its annotation is collision-aware so it never overwrites the execution-window title/arrow/dates.
   const now=activeDate();
   if(+now>=x0&&+now<=x1){
     const tx=x(now),exp=parseIteration(DATA.at(-1).iteration)?.end||DATA.at(-1).date;
+    const insideWindow=+now>=+win.start&&+now<=+win.end;
+    const nearWindow=tx>=wx1-190&&tx<=wx2+190;
     svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,class:'guideDash'}));
-    txt(tx+8,m.t+13,`TODAY (${fmt(now)})`,'t1');
-    txt(tx+8,m.t+28,`${months(now,exp)} months to lease expiration`,'t2');
-    txt(tx+8,m.t+41,`${months(now,win.start)} months to optimal execution window`,'t2');
+
+    let labelX=tx+8,labelY=m.t+13,anchor='start';
+    if(insideWindow||nearWindow){
+      // Window owns the centered top lane. TODAY moves to the nearest clear side.
+      const roomLeft=wx1-m.l,roomRight=(W-m.r)-wx2;
+      if(roomLeft>=roomRight){
+        labelX=Math.max(m.l+8,wx1-18); anchor='end';
+      }else{
+        labelX=Math.min(W-m.r-8,wx2+18); anchor='start';
+      }
+      labelY=m.t+64;
+    }
+    txt(labelX,labelY,`TODAY (${fmt(now)})`,'t1',anchor);
+    txt(labelX,labelY+15,`${months(now,exp)} months to lease expiration`,'t2',anchor);
+    txt(labelX,labelY+28,insideWindow?'INSIDE OPTIMAL EXECUTION WINDOW':`${months(now,win.start)} months to optimal execution window`,'t2',anchor);
   }
 
   // Clean window: vertical boundaries + ONE date treatment below the arrow.
