@@ -20,10 +20,10 @@
 .t1{font-size:12px}.t2{font-size:10px}
 .guideDash{stroke-width:2;stroke-dasharray:7 5}
 
-/* NORTHSTAR timeline enhancement: additive only */
-.schedule{grid-template-columns:repeat(var(--stage-count,5),minmax(0,1fr))}
-.phasebox{background:linear-gradient(180deg,color-mix(in srgb,var(--phase-color,#16e6e9) 18%,transparent),rgba(7,19,33,.03));box-shadow:inset 0 3px 0 var(--phase-color,#16e6e9)}
-.phasebox strong{color:var(--phase-color,#d3dde5)}
-.leaseExpiryGuide{stroke:#efc65e;stroke-width:2;stroke-dasharray:3 4}
-.leaseExpiryText{fill:#efc65e;font-size:11px;font-weight:700}
-.leaseExpiryDate{fill:#d3dde5;font-size:9px}
+/* Live PROCESS_STAGE schedule + lease-expiration north star */
+.schedule{grid-template-columns:none}
+.dynamicPhase{background:linear-gradient(180deg,color-mix(in srgb,var(--stage-color) 18%,transparent),rgba(7,19,33,.96));box-shadow:inset 0 3px 0 var(--stage-color)}
+.dynamicPhase strong{color:var(--stage-color)}
+.leaseNorthStar{stroke:#efc65e;stroke-width:2.2;stroke-dasharray:4 3}
+.leaseNorthStarText{fill:#efc65e;font-size:11px;font-weight:700}
+.leaseNorthStarDate{fill:#d9c27d;font-size:10px;font-weight:700}

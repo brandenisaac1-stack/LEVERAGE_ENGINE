@@ -1,23 +1,23 @@
 {
   "index.html": {
-    "bytes": 2625,
-    "sha256": "c6b027991e0ad24194642e76046aa6ef594188e034009e3fb2beeedfc1c29324"
+    "bytes": 1903,
+    "sha256": "ca3e557601fc4de065d708941d4511f2082538cd45fd214b6ddc9d83507a25a1"
   },
   "app.js": {
-    "bytes": 14891,
-    "sha256": "ffe6579dff9f073db4d18c14397a59c299d22e6d13499159f3404c8c1fc21848"
+    "bytes": 14475,
+    "sha256": "1ed6f30c54e3f9935b06275726602fd36911d6bfff60ea0da16181c831dc9836"
   },
   "process.js": {
-    "bytes": 4885,
-    "sha256": "4bddacbfc3774a825caa899fb21f9e8ee3111eee43af078a27cd3de3ebe52f2e"
+    "bytes": 4042,
+    "sha256": "1ed01da17f00093c12b2b4465096e20009fb8f2668161c8b7b36c354c74e03f2"
+  },
+  "styles.css": {
+    "bytes": 5608,
+    "sha256": "1ea4cf95cd962649285ec989c45812d9a98c2d484a8ab9621a98568b7a6610bd"
   },
   "curves.js": {
     "bytes": 1898,
     "sha256": "1f289ad45f4837f6cc77dc42828b159158cb639210140881d22592e040ce4abe"
-  },
-  "styles.css": {
-    "bytes": 5627,
-    "sha256": "465634d9cde6cb80f7288b7ba798233aa45cf5b1de8ecb7274f6c98eac8037ae"
   },
   "annotations.js": {
     "bytes": 1079,
