@@ -30,7 +30,8 @@ function windowBounds(){
 
   return {start,end};
 }
-function getLeaseExpiration(){const d=DATA.map(r=>r.leaseExpiration).find(v=>v!=null&&v!==''&&Number.isFinite(+new Date(v)));if(d==null)throw new Error('LEASE_EXPIRATION_DATE is required.');const x=new Date(d);x.setHours(0,0,0,0);return x}
+function getLeaseExpiration(){const d=DATA.map(r=>r.leaseExpiration).find(v=>v!=null&&v!==''&&Number.isFinite(+new Date(v)));if(d==null)throw new Error('LEASE_EXPIRATION_DATE is required.');return new Date(d)}
+function fmtLease(d){return `${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(-2)}`}
 function activeDate(){const d=new Date();d.setHours(0,0,0,0);return d}
 async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configuration','err');msg.innerHTML='Missing clientId or service URL.';return}const OAuthInfo=await $arcgis.import('@arcgis/core/identity/OAuthInfo.js');idm=await $arcgis.import('@arcgis/core/identity/IdentityManager.js');FeatureLayer=await $arcgis.import('@arcgis/core/layers/FeatureLayer.js');const info=new OAuthInfo({appId:CFG.clientId,portalUrl:CFG.portal,popup:true,popupCallbackUrl:'oauth-callback.html',flowType:'auto'});idm.registerOAuthInfos([info]);try{await idm.checkSignInStatus(CFG.portal+'/sharing/rest');await load()}catch(e){$('login').hidden=false;$('logout').hidden=true;select.disabled=true;$('clear').disabled=true;center.hidden=false;popup.hidden=true;state('Sign in required','warn')}}
 async function signIn(){try{state('Opening ArcGIS sign-in…','warn');$('login').disabled=true;$('centerLogin').disabled=true;await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);$('login').hidden=false;$('logout').hidden=true;state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}finally{$('login').disabled=false;$('centerLogin').disabled=false}}
@@ -93,9 +94,10 @@ function render(){
   const leaseExp=getLeaseExpiration();
   if(+leaseExp>=x0&&+leaseExp<=x1){
     const ex=x(leaseExp);
-    svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseNorthStar'}));
-    txt(Math.min(W-m.r-8,ex-8),m.t+62,'LEASE EXPIRATION','leaseNorthStarText','end');
-    txt(Math.min(W-m.r-8,ex-8),m.t+76,fmt(leaseExp),'leaseNorthStarDate','end');
+    svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,stroke:'#f21e32','stroke-width':'3','stroke-dasharray':'8 4'}));
+    const lx=Math.min(W-m.r-8,ex-10);
+    const lt=txt(lx,m.t+62,'LEASE EXPIRATION','t1','end');lt.setAttribute('fill','#f21e32');lt.setAttribute('font-size','14');lt.setAttribute('font-weight','700');
+    const ld=txt(lx,m.t+79,fmtLease(leaseExp),'t2','end');ld.setAttribute('fill','#f21e32');ld.setAttribute('font-size','12');ld.setAttribute('font-weight','700');
   }
 
   // Clean window: vertical boundaries + ONE date treatment below the arrow.
