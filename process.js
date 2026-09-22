@@ -86,7 +86,7 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl}){
       if(a>=m.l&&a<=W-m.r){
         svg.appendChild(ns('circle',{cx:a,cy:yy,r:5,fill:p.color,stroke:p.color,'stroke-width':'2'}));
         const title=txt(Math.max(m.l+70,a-8),yy-12,p.key,'proc','end');title.setAttribute('fill',p.color);
-        const sub=txt(Math.max(m.l+70,a-8),yy+17,fmtDate(p.start),'axis','end');sub.setAttribute('fill','#a9bac7');
+        const sub=txt(Math.max(m.l+70,a-8),yy+17,fmtDate(p.start),'axis','end');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','13px','important');
       }
       return;
     }
@@ -101,7 +101,7 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl}){
     defs.appendChild(g);
     svg.appendChild(ns('rect',{x:a,y:yy-8,width:b-a,height:16,rx:6,fill:`url(#${id})`,stroke:p.color,'stroke-width':'1.6','stroke-opacity':'.9'}));
     if(b-a>90){const title=txt((a+b)/2,yy-13,p.key,'proc','middle');title.setAttribute('fill',p.color)}
-    if(b-a>125){const sub=txt((a+b)/2,yy+21,`${fmtDate(p.start)} · ${p.duration} MO`,'axis','middle');sub.setAttribute('fill','#a9bac7')}
+    if(b-a>125){const sub=txt((a+b)/2,yy+21,`${fmtDate(p.start)} · ${p.duration} MO`,'axis','middle');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','13px','important')}
   });
 }
 
