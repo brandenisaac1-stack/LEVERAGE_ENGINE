@@ -102,11 +102,17 @@ function render(){
   const exp=leaseExpiration();
   if(+exp>=x0&&+exp<=x1){
     const ex=x(exp);
-    svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseExpiryGuide'}));
+    svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseExpiryGuide',stroke:'#f21e32','stroke-width':'3','stroke-dasharray':'8 4'}));
     const anchor=ex>W-m.r-150?'end':'start';
     const lx=anchor==='end'?ex-8:ex+8;
-    txt(lx,m.t+64,'LEASE EXPIRATION','leaseExpiryText',anchor);
-    txt(lx,m.t+78,fmt(exp),'leaseExpiryDate',anchor);
+    const leaseTitle=txt(lx,m.t+64,'LEASE EXPIRATION','leaseExpiryText',anchor);
+    leaseTitle.setAttribute('fill','#f21e32');
+    leaseTitle.setAttribute('font-size','20');
+    leaseTitle.setAttribute('font-weight','700');
+    const leaseDate=txt(lx,m.t+88,fmt(exp),'leaseExpiryDate',anchor);
+    leaseDate.setAttribute('fill','#f21e32');
+    leaseDate.setAttribute('font-size','20');
+    leaseDate.setAttribute('font-weight','700');
   }
 
   // Clickable live-data anchors. The full curve never disappears.
