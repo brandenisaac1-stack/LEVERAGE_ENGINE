@@ -61,13 +61,23 @@ function syncSchedule(el,model){
   el.innerHTML='';
   el.style.gridTemplateColumns=`repeat(${Math.max(1,model.length)},minmax(0,1fr))`;
   for(const p of model){
-    const box=document.createElement('div');box.className='phasebox dynamicPhase';box.style.setProperty('--stage-color',p.color);
-    const strong=document.createElement('strong');strong.textContent=p.key;
-    const tiny=document.createElement('span');tiny.className='tiny';
+    const box=document.createElement('div');
+    box.className='phasebox dynamicPhase';
+    box.style.setProperty('--stage-color',p.color);
+    box.style.borderTop=`3px solid ${p.color}`;
+
+    const strong=document.createElement('strong');
+    strong.textContent=p.key;
+    strong.style.setProperty('color',p.color,'important');
+
+    const tiny=document.createElement('span');
+    tiny.className='tiny';
     tiny.textContent=p.pointOnly
       ? `${fmtDate(p.start)} · MILESTONE · ${p.description}`
       : `${fmtDate(p.start)} · ${p.duration} MONTH${p.duration===1?'':'S'} · ${p.description}`;
-    box.append(strong,tiny);el.appendChild(box);
+
+    box.append(strong,tiny);
+    el.appendChild(box);
   }
 }
 
@@ -84,9 +94,31 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl}){
     // If a stage begins exactly at the terminal north star, show a milestone rather than inventing duration.
     if(p.pointOnly){
       if(a>=m.l&&a<=W-m.r){
-        svg.appendChild(ns('circle',{cx:a,cy:yy,r:5,fill:p.color,stroke:p.color,'stroke-width':'2'}));
-        const title=txt(Math.max(m.l+70,a-8),yy-12,p.key,'proc','end');title.setAttribute('fill',p.color);
-        const sub=txt(Math.max(m.l+70,a-8),yy+17,fmtDate(p.start),'axis','end');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','18px','important');
+        svg.appendChild(ns('circle',{
+          cx:a,
+          cy:yy,
+          r:5,
+          fill:p.color,
+          stroke:p.color,
+          'stroke-width':'2'
+        }));
+
+        const labelX=Math.max(m.l+90,a-10);
+
+        const title=txt(labelX,yy-14,p.key,'proc','end');
+        title.setAttribute('fill',p.color);
+        title.style.setProperty('font-size','16px','important');
+        title.style.setProperty('font-weight','700','important');
+
+        const sub=txt(
+          labelX,
+          yy+20,
+          `${fmtDate(p.start)} · MILESTONE`,
+          'axis',
+          'end'
+        );
+        sub.setAttribute('fill','#a9bac7');
+        sub.style.setProperty('font-size','16px','important');
       }
       return;
     }
@@ -99,9 +131,43 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl}){
     g.appendChild(ns('stop',{offset:'50%','stop-color':p.color,'stop-opacity':'.34'}));
     g.appendChild(ns('stop',{offset:'100%','stop-color':p.color,'stop-opacity':'.10'}));
     defs.appendChild(g);
-    svg.appendChild(ns('rect',{x:a,y:yy-8,width:b-a,height:16,rx:6,fill:`url(#${id})`,stroke:p.color,'stroke-width':'1.6','stroke-opacity':'.9'}));
-    if(b-a>90){const title=txt((a+b)/2,yy-13,p.key,'proc','middle');title.setAttribute('fill',p.color)}
-    if(b-a>125){const sub=txt((a+b)/2,yy+21,`${fmtDate(p.start)} · ${p.duration} MO`,'axis','middle');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','18px','important')}
+    svg.appendChild(ns('rect',{
+      x:a,
+      y:yy-8,
+      width:b-a,
+      height:16,
+      rx:6,
+      fill:`url(#${id})`,
+      stroke:p.color,
+      'stroke-width':'1.6',
+      'stroke-opacity':'.9'
+    }));
+
+    // ALWAYS render the phase name regardless of bar width.
+    // The bar retains its true calendar width; text is allowed to extend beyond it.
+    const mid=(a+b)/2;
+
+    const title=txt(
+      mid,
+      yy-14,
+      p.key,
+      'proc',
+      'middle'
+    );
+    title.setAttribute('fill',p.color);
+    title.style.setProperty('font-size','16px','important');
+    title.style.setProperty('font-weight','700','important');
+
+    // ALWAYS render start date + duration regardless of bar width.
+    const sub=txt(
+      mid,
+      yy+21,
+      `${fmtDate(p.start)} · ${p.duration} MO`,
+      'axis',
+      'middle'
+    );
+    sub.setAttribute('fill','#a9bac7');
+    sub.style.setProperty('font-size','16px','important');
   });
 }
 
