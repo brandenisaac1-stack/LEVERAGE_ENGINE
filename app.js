@@ -31,7 +31,8 @@ function windowBounds(){
   return {start,end};
 }
 function activeDate(){const d=new Date();d.setHours(0,0,0,0);return d}
-function exactArcGISDate(v){if(v==null||v==='')return null;const d=new Date(v);if(!Number.isFinite(+d))return null;if(typeof v==='number'||/^\d+$/.test(String(v).trim()))return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+function exactArcGISDate(v){if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(+d)?d:null}
+function fmtArcGISDate(v){const d=exactArcGISDate(v);if(!d)return '—';return `${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(-2)}`}
 function leaseExpiration(){const dates=DATA.map(d=>d.leaseExpiration).filter(d=>d instanceof Date&&Number.isFinite(+d));if(dates.length!==1&&dates.length>1){const uniq=[...new Set(dates.map(d=>+d))];if(uniq.length!==1)throw new Error('LEASE_EXPIRATION_DATE contains conflicting values.');}if(!dates.length)throw new Error('LEASE_EXPIRATION_DATE is required.');return new Date(+dates[0])}
 async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configuration','err');msg.innerHTML='Missing clientId or service URL.';return}const OAuthInfo=await $arcgis.import('@arcgis/core/identity/OAuthInfo.js');idm=await $arcgis.import('@arcgis/core/identity/IdentityManager.js');FeatureLayer=await $arcgis.import('@arcgis/core/layers/FeatureLayer.js');const info=new OAuthInfo({appId:CFG.clientId,portalUrl:CFG.portal,popup:true,popupCallbackUrl:'oauth-callback.html',flowType:'auto'});idm.registerOAuthInfos([info]);try{await idm.checkSignInStatus(CFG.portal+'/sharing/rest');await load()}catch(e){$('login').hidden=false;$('logout').hidden=true;select.disabled=true;$('clear').disabled=true;center.hidden=false;popup.hidden=true;state('Sign in required','warn')}}
 async function signIn(){try{state('Opening ArcGIS sign-in…','warn');$('login').disabled=true;$('centerLogin').disabled=true;await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);$('login').hidden=false;$('logout').hidden=true;state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}finally{$('login').disabled=false;$('centerLogin').disabled=false}}
@@ -109,7 +110,7 @@ function render(){
     leaseTitle.setAttribute('fill','#f21e32');
     leaseTitle.setAttribute('font-size','20');
     leaseTitle.setAttribute('font-weight','700');
-    const leaseDate=txt(lx,m.t+88,fmt(exp),'leaseExpiryDate',anchor);
+    const leaseDate=txt(lx,m.t+88,fmtArcGISDate(expRaw),'leaseExpiryDate',anchor);
     leaseDate.setAttribute('fill','#f21e32');
     leaseDate.setAttribute('font-size','20');
     leaseDate.setAttribute('font-weight','700');
