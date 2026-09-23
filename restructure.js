@@ -1,5 +1,5 @@
 // EARLY RESTRUCTURE overlay — coherent scenario renderer.
-// DROP-IN replacement only. No app.js/index.html/process.js/curves.js changes required.
+// DROP-IN replacement only. Matches working app.js contract: plottedSeries:P.
 
 const BLUE = '#3e91d7';
 const BLUE_TEXT = '#79baf0';
@@ -44,15 +44,19 @@ function nearestTenant(P,date){
 }
 
 function interpolateTenant(P,ms){
-  if(!P.length) return null;
+  if(!Array.isArray(P)||!P.length) return null;
   if(ms<=+P[0].date) return +P[0].plotTenant;
   if(ms>=+P[P.length-1].date) return +P[P.length-1].plotTenant;
+
   let lo=0,hi=P.length-1;
   while(hi-lo>1){
     const mid=(lo+hi)>>1;
-    if(+P[mid].date<=ms) lo=mid; else hi=mid;
+    if(+P[mid].date<=ms) lo=mid;
+    else hi=mid;
   }
-  const a=P[lo],b=P[hi],span=(+b.date-+a.date)||1;
+
+  const a=P[lo],b=P[hi];
+  const span=(+b.date-+a.date)||1;
   const t=(ms-+a.date)/span;
   return +a.plotTenant+(+b.plotTenant-+a.plotTenant)*t;
 }
@@ -60,17 +64,23 @@ function interpolateTenant(P,ms){
 function curvePath(pts){
   if(pts.length<2) return '';
   let d=`M ${pts[0][0]} ${pts[0][1]}`;
+
   for(let i=0;i<pts.length-1;i++){
-    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const p0=pts[Math.max(0,i-1)];
+    const p1=pts[i];
+    const p2=pts[i+1];
+    const p3=pts[Math.min(pts.length-1,i+2)];
+
     d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`;
   }
+
   return d;
 }
 
 function drawRestructure({
   enabled,
   data,
-  P,
+  plottedSeries,
   x,
   y,
   m,
@@ -81,13 +91,22 @@ function drawRestructure({
   txt,
   selected=-1
 }){
-  if(!enabled || !Array.isArray(data) || !data.length || !Array.isArray(P) || !P.length) return;
+  const P=plottedSeries;
 
-  // One transaction-level control row: first populated restructure state/effective date.
+  if(
+    !enabled ||
+    !Array.isArray(data) ||
+    !data.length ||
+    !Array.isArray(P) ||
+    !P.length
+  ) return;
+
+  // First populated restructure row is the transaction-level control.
   const control=data.find(d =>
     String(d.restructureProgress??'').trim() ||
     validDate(d.restructureEffectiveDate)
   );
+
   if(!control) return;
 
   const effective=validDate(control.restructureEffectiveDate);
@@ -96,19 +115,17 @@ function drawRestructure({
   const state=progressState(control.restructureProgress);
   const startMs=+effective;
   const horizonMs=+P[P.length-1].date;
+
   if(!Number.isFinite(startMs) || startMs>horizonMs) return;
 
+  // Exact join to the existing teal relocation curve at restructure inception.
   const baselineAtStart=nearestTenant(P,effective);
   if(!Number.isFinite(baselineAtStart)) return;
 
-  // Structural floor = leverage at restructure inception.
-  // The scenario can preserve some future upside, but it can NEVER manufacture
-  // leverage above the relocation counterfactual.
   const floor=baselineAtStart;
 
-  // Dense smooth scenario generated from the existing relocation curve.
-  // At inception it is exactly equal to teal. The state effect fades in smoothly
-  // over ~20% of the remaining horizon, eliminating knees/vertical jumps.
+  // Build a dense, smooth path from inception forward.
+  // It can preserve relocation leverage, or consume it, but never exceed teal.
   const endMs=state.executed ? startMs : horizonMs;
   const N=state.executed ? 1 : 320;
   const scenario=[];
@@ -117,18 +134,22 @@ function drawRestructure({
     const t=N===1 ? 0 : i/(N-1);
     const ms=startMs+(endMs-startMs)*t;
     const baseline=interpolateTenant(P,ms);
+
     if(!Number.isFinite(baseline)) continue;
 
+    // Gradually introduce the selected commitment state after inception.
+    // This avoids an artificial kink where the scenario branches.
     const fade=smoothstep(Math.min(1,t/0.20));
     const retainedNow=1-(1-state.retained)*fade;
 
-    // Only incremental leverage above the inception floor is subject to
-    // optionality consumption. If baseline falls below the floor later,
-    // follow the baseline rather than artificially holding leverage up.
+    // Consume only incremental leverage above the inception level.
+    // Once the relocation curve naturally falls back below inception leverage,
+    // the scenario simply follows it rather than creating artificial value.
     const incremental=Math.max(0,baseline-floor);
     let value=baseline-(incremental*(1-retainedNow));
 
-    // Explicit guard: restructure path must never exceed relocation counterfactual.
+    // Absolute guard: bilateral restructure cannot manufacture more leverage
+    // than the active relocation counterfactual.
     value=Math.min(value,baseline);
 
     scenario.push({
@@ -138,14 +159,19 @@ function drawRestructure({
     });
   }
 
-  // 100% EXECUTED: active negotiation path terminates at the execution/effective date.
+  // At execution there is no continuing active negotiation-leverage path.
   if(state.executed){
     scenario.length=0;
-    scenario.push({date:new Date(startMs),value:baselineAtStart,baseline:baselineAtStart});
+    scenario.push({
+      date:new Date(startMs),
+      value:baselineAtStart,
+      baseline:baselineAtStart
+    });
   }
 
   if(scenario.length>=2){
     const pts=scenario.map(p=>[x(p.date),y(p.value)]);
+
     svg.appendChild(ns('path',{
       d:curvePath(pts),
       fill:'none',
@@ -158,22 +184,33 @@ function drawRestructure({
 
   const ex=x(effective);
 
-  // Effective-date guide + exact anchor to teal.
+  // Effective-date guide.
   svg.appendChild(ns('line',{
-    x1:ex,y1:m.t+52,x2:ex,y2:base,
+    x1:ex,
+    y1:m.t+52,
+    x2:ex,
+    y2:base,
     stroke:BLUE,
     'stroke-width':'1.5',
     'stroke-dasharray':'4 4',
     opacity:'.78'
   }));
+
+  // Exact branch point on the teal curve.
   svg.appendChild(ns('circle',{
-    cx:ex,cy:y(baselineAtStart),r:5,
-    fill:BLUE,stroke:'#fff','stroke-width':'1.5'
+    cx:ex,
+    cy:y(baselineAtStart),
+    r:5,
+    fill:BLUE,
+    stroke:'#fff',
+    'stroke-width':'1.5'
   }));
 
-  // Existing engine economics: use ACTION_NPV_TIMING_DELTA as the value of
-  // preserving the relocation/competitive path. No fabricated restructure NPV.
+  // Use existing engine economics only.
+  // ACTION_NPV_TIMING_DELTA represents the modeled value of preserving
+  // the competitive path versus acting at the evaluated point.
   let econRow=null;
+
   if(
     selected>=0 &&
     data[selected] &&
@@ -182,23 +219,51 @@ function drawRestructure({
   ){
     econRow=data[selected];
   }else{
-    econRow=data.find(d=>+d.date>=startMs && Number.isFinite(+d.npvDelta)) || null;
+    econRow=
+      data.find(d =>
+        +d.date>=startMs &&
+        Number.isFinite(+d.npvDelta)
+      ) || null;
   }
+
   const optionValue=econRow ? +econRow.npvDelta : NaN;
 
-  // Contained blue scenario card.
-  const cardW=Math.min(410,Math.max(340,(W-m.l-m.r)*0.25));
+  // Contained scenario card.
+  const cardW=Math.min(
+    410,
+    Math.max(340,(W-m.l-m.r)*0.25)
+  );
   const cardH=78;
-  const cardX=Math.max(m.l+10,Math.min(W-m.r-cardW-10,ex-cardW*0.45));
+
+  const cardX=Math.max(
+    m.l+10,
+    Math.min(
+      W-m.r-cardW-10,
+      ex-cardW*0.45
+    )
+  );
+
   const cardY=m.t+52;
 
   svg.appendChild(ns('rect',{
-    x:cardX,y:cardY,width:cardW,height:cardH,rx:7,
-    fill:'#071321','fill-opacity':'.97',
-    stroke:BLUE,'stroke-width':'1.4'
+    x:cardX,
+    y:cardY,
+    width:cardW,
+    height:cardH,
+    rx:7,
+    fill:'#071321',
+    'fill-opacity':'.97',
+    stroke:BLUE,
+    'stroke-width':'1.4'
   }));
 
-  const title=txt(cardX+12,cardY+20,`EARLY RESTRUCTURE · ${state.label}`,'','start');
+  const title=txt(
+    cardX+12,
+    cardY+20,
+    `EARLY RESTRUCTURE · ${state.label}`,
+    '',
+    'start'
+  );
   title.setAttribute('fill',BLUE_TEXT);
   title.setAttribute('font-size','12');
   title.setAttribute('font-weight','700');
@@ -207,7 +272,13 @@ function drawRestructure({
     ? 'RESTRUCTURE EXECUTED · RELOCATION PATH IS COUNTERFACTUAL'
     : 'RELOCATION ALTERNATIVE REMAINS ACTIVE';
 
-  const status=txt(cardX+12,cardY+42,statusText,'','start');
+  const status=txt(
+    cardX+12,
+    cardY+42,
+    statusText,
+    '',
+    'start'
+  );
   status.setAttribute('fill','#c7d7e4');
   status.setAttribute('font-size','10');
   status.setAttribute('font-weight','700');
