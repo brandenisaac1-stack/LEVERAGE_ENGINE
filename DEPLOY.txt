@@ -1,14 +1,15 @@
-EARLY RESTRUCTURE V1 - ADDITIVE DEPLOYMENT
+COMPLETE EARLY RESTRUCTURE BUILD
 
-Replace only:
-- index.html
-- app.js
-- styles.css
+Upload all files in this package together.
 
-Do NOT replace/touch:
-- curves.js
-- process.js
-- annotations.js
-- oauth-callback.html
-
-Toggle defaults OFF. With toggle OFF, no restructure scenario elements render.
+Verified:
+- app.js imports drawRestructure from ./restructure.js
+- restructure.js exports drawRestructure
+- early restructure toggle exists in index.html and defaults OFF
+- toggle OFF draws no restructure overlay
+- restructure curve begins at RESTRUCTURE_EFFECTIVE_DATE
+- first restructure point anchors to the existing tenant relocation curve
+- restructure overlay uses Early Restructure blue
+- card shows MODELED VALUE OF CONTINUING using existing ACTION_NPV_TIMING_DELTA
+- curves.js, process.js, annotations.js, oauth-callback.html, and styles.css are byte-for-byte unchanged from the supplied working baseline
+- JavaScript syntax checks passed

@@ -27,11 +27,3 @@
 .leaseNorthStar{stroke:#efc65e;stroke-width:2.2;stroke-dasharray:4 3}
 .leaseNorthStarText{fill:#efc65e;font-size:11px;font-weight:700}
 .leaseNorthStarDate{fill:#d9c27d;font-size:10px;font-weight:700}
-\n\n/* --- EARLY RESTRUCTURE SCENARIO: additive / toggle-controlled --- */
-.restructureToggle{color:#d77ac8!important}
-.restructureCurve{stroke:#f29be2;stroke-width:2;stroke-dasharray:8 5;fill:none;opacity:.98;filter:drop-shadow(0 0 2px rgba(242,155,226,.35))}
-.restructureGuide{stroke:#f29be2;stroke-width:1.5;stroke-dasharray:4 4;opacity:.78}
-.restructureCard{fill:#120b1b;fill-opacity:.96;stroke:#d77ac8;stroke-width:1.2;stroke-opacity:.9}
-.restructureTitle{fill:#f29be2;font-size:11px;font-weight:700}
-.restructureSub{fill:#d8c7df;font-size:9px;font-weight:700}
-.restructureDot{fill:#f29be2;stroke:#fff;stroke-width:1.5}
