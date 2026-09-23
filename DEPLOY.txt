@@ -1,0 +1,14 @@
+EARLY RESTRUCTURE V1 - ADDITIVE DEPLOYMENT
+
+Replace only:
+- index.html
+- app.js
+- styles.css
+
+Do NOT replace/touch:
+- curves.js
+- process.js
+- annotations.js
+- oauth-callback.html
+
+Toggle defaults OFF. With toggle OFF, no restructure scenario elements render.
