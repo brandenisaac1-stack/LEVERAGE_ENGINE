@@ -1,6 +1,7 @@
 import { shapedSeries, curveValueAt } from "./curves.js";
 import { drawProcess } from "./process.js?v=20260922-process16-v1";
 import { showPopup } from "./annotations.js";
+import { drawRestructure } from "./restructure.js?v=20260923-restructure2";
 const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;const fmtUTC=d=>`${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(-2)}`;const money=v=>Number.isFinite(+v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(+v):'—';const months=(a,b)=>Math.max(0,Math.round((b-a)/2629800000));const ns=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e};const txt=(x,y,s,cl,an='start')=>{const t=ns('text',{x,y,class:cl,'text-anchor':an});t.textContent=s;svg.appendChild(t);return t};function state(s,c=''){status.textContent=s;status.className='status '+c}
 function pick(fs,cands,req=false){const m=new Map(fs.map(f=>[f.name.toLowerCase(),f.name]));for(const c of cands){if(m.has(c.toLowerCase()))return m.get(c.toLowerCase())}if(req)throw new Error('Required field missing: '+cands.join(' / '));return null}function val(a,k){return fields[k]?a[fields[k]]:null}
@@ -37,28 +38,12 @@ async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configurat
 async function signIn(){try{state('Opening ArcGIS sign-in…','warn');$('login').disabled=true;$('centerLogin').disabled=true;await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);$('login').hidden=false;$('logout').hidden=true;state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}finally{$('login').disabled=false;$('centerLogin').disabled=false}}
 async function load(){center.hidden=false;msg.textContent='Authenticated. Loading protected chart data…';state('Loading protected layer…','warn');const layer=new FeatureLayer({url:CFG.service});await layer.load();fields={date:pick(layer.fields,['Chart_dates','chart_dates','chart_date'],true),tenant:pick(layer.fields,['Decision_Curve_0to100','decision_curve_0to100','decision_0to100'],true),landlord:pick(layer.fields,['plot_LL','plot_ll'],true),iteration:pick(layer.fields,['comb_iter','iteration']),phase:pick(layer.fields,['Phases','phase']),processStage:pick(layer.fields,['PROCESS_STAGE','process_stage','Process_Stage','ProcessStage']),processStart:pick(layer.fields,['PROCESS_START_DATE','process_start_date','Process_Start_Date','ProcessStartDate']),executionWindow:pick(layer.fields,['EXECUTION_WINDOW','execution_window','Execution_Window','ExecutionWindow'],true),leaseExpiration:pick(layer.fields,['LEASE_EXPIRATION_DATE','lease_expiration_date','Lease_Expiration_Date','LeaseExpirationDate'],true),restructureProgress:pick(layer.fields,['RESTRUCTURE_PROGRESS','restructure_progress','Restructure_Progress','RestructureProgress']),restructureEffectiveDate:pick(layer.fields,['RESTRUCTURE_EFFECTIVE_DATE','restructure_effective_date','Restructure_Effective_Date','RestructureEffectiveDate']),restructureTenantCurve:pick(layer.fields,['RESTRUCTURE_TENANT_CURVE','restructure_tenant_curve','Restructure_Tenant_Curve','RestructureTenantCurve']),restructureOptionValue:pick(layer.fields,['RESTRUCTURE_OPTION_VALUE','restructure_option_value','Restructure_Option_Value','RestructureOptionValue']),action:pick(layer.fields,['ACTION_POINT','action_point']),rent:pick(layer.fields,['ACTION_EFFECTIVE_RENT','action_effective_rent']),alev:pick(layer.fields,['ACTION_LEVERAGE','action_leverage']),wait:pick(layer.fields,['NET_WAIT_VALUE_DAY','net_wait_value_day']),chrono:pick(layer.fields,['CHRONOS_ACTION','chronos_action']),read:pick(layer.fields,['chronos_read','economic_read']),npvToday:pick(layer.fields,['ACTION_NPV_CURRENT','action_npv_current']),npvExec:pick(layer.fields,['ACTION_NPV_EXEC_ADJUSTED','action_npv_exec_adjusted']),npvDelta:pick(layer.fields,['ACTION_NPV_TIMING_DELTA','action_npv_timing_delta'])};const out=[...new Set(Object.values(fields).filter(Boolean))];const q=layer.createQuery();q.where=`${fields.tenant} IS NOT NULL AND ${fields.date} IS NOT NULL`;q.outFields=out;q.returnGeometry=false;q.orderByFields=[`${fields.date} ASC`];const r=await layer.queryFeatures(q);DATA=r.features.map(f=>{const a=f.attributes;let t=+val(a,'tenant');if(t<=1.5)t*=100;return{date:new Date(val(a,'date')),tenant:t,landlord:+val(a,'landlord'),iteration:val(a,'iteration'),phase:val(a,'phase'),processStage:val(a,'processStage'),processStart:val(a,'processStart')!=null?new Date(val(a,'processStart')):null,executionWindow:val(a,'executionWindow'),leaseExpiration:val(a,'leaseExpiration')!=null?new Date(val(a,'leaseExpiration')):null,restructureProgress:val(a,'restructureProgress'),restructureEffectiveDate:val(a,'restructureEffectiveDate')!=null?new Date(val(a,'restructureEffectiveDate')):null,restructureTenantCurve:val(a,'restructureTenantCurve')!=null?+val(a,'restructureTenantCurve'):null,restructureOptionValue:val(a,'restructureOptionValue')!=null?+val(a,'restructureOptionValue'):null,action:val(a,'action'),rent:val(a,'rent'),alev:val(a,'alev'),wait:val(a,'wait'),chrono:val(a,'chrono'),read:val(a,'read'),npvToday:val(a,'npvToday'),npvExec:val(a,'npvExec'),npvDelta:val(a,'npvDelta')}}).filter(d=>Number.isFinite(+d.date)&&Number.isFinite(d.tenant)&&Number.isFinite(d.landlord)).sort((a,b)=>a.date-b.date);if(DATA.length<CFG.endRow)throw new Error(`Only ${DATA.length} chart rows returned; windowEndRow is ${CFG.endRow}.`);select.innerHTML='<option value="-1">— none —</option>'+DATA.map((d,i)=>`<option value="${i}">${esc(d.iteration||fmt(d.date))}</option>`).join('');$('login').hidden=true;$('logout').hidden=false;select.disabled=false;$('clear').disabled=false;center.hidden=true;state(`Live · ${DATA.length} chart rows`,'ok');if(CFG.selected){selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim());select.value=String(selected)}render();updateImpact()}
 function curvePath(pts){if(pts.length<2)return'';let d=`M ${pts[0][0]} ${pts[0][1]}`;for(let i=0;i<pts.length-1;i++){let p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];d+=` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`}return d}
-function restructureControl(){
-  const progress=DATA.map(d=>String(d.restructureProgress??'').trim()).find(Boolean)||'';
-  const effective=DATA.map(d=>d.restructureEffectiveDate).find(d=>d instanceof Date&&Number.isFinite(+d))||null;
-  return {progress,effective};
-}
-function restructureSeries(){
-  return DATA.map(d=>{
-    let v=+d.restructureTenantCurve;
-    if(!Number.isFinite(v))return null;
-    if(v<=1.5)v*=100;
-    return {date:d.date,value:v,optionValue:Number.isFinite(+d.restructureOptionValue)?+d.restructureOptionValue:null};
-  }).filter(Boolean).sort((a,b)=>a.date-b.date);
-}
 function render(){
   if(!DATA.length){svg.innerHTML='';return}
   const win=windowBounds(),P=shapedSeries(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
   const pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
-  const restructureOn=!!$('restructure')?.checked;
-  const RS=restructureOn?restructureSeries():[];
-  const scaleValues=P.flatMap(d=>[d.plotTenant,d.plotLandlord]).concat(RS.map(d=>d.value));
-  const min=Math.floor(Math.min(...scaleValues)/5)*5-3;
-  const max=Math.ceil(Math.max(...scaleValues)/5)*5+3;
+  const min=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3;
+  const max=Math.ceil(Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5+3;
   const x=d=>m.l+((+d-x0)/(x1-x0))*pw,y=v=>m.t+(max-v)/(max-min)*ph,base=y(min);
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
 
@@ -76,26 +61,7 @@ function render(){
   svg.appendChild(ns('path',{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:'#4b8584','fill-opacity':'.54'}));
   svg.appendChild(ns('path',{d:ll,fill:'none',stroke:'#f21e32','stroke-width':'2.35'}));
   svg.appendChild(ns('path',{d:tl,fill:'none',stroke:'#69c9c6','stroke-width':'2.35'}));
-
-  // ADDITIVE EARLY RESTRUCTURE SCENARIO. Existing thick curves remain the relocation counterfactual.
-  if(restructureOn&&RS.length){
-    const rp=RS.map(d=>[x(d.date),y(d.value)]);
-    const rd=curvePath(rp);
-    svg.appendChild(ns('path',{d:rd,fill:'none',class:'restructureCurve'}));
-    const ctl=restructureControl();
-    const first=RS[0],last=RS.at(-1);
-    const ex=x(ctl.effective||first.date);
-    if(Number.isFinite(ex))svg.appendChild(ns('line',{x1:ex,y1:m.t+52,x2:ex,y2:base,class:'restructureGuide'}));
-    const cardW=Math.min(360,Math.max(280,pw*.22)),cardH=54;
-    const cardX=Math.max(m.l+8,Math.min(W-m.r-cardW-8,(Number.isFinite(ex)?ex:m.l+cardW/2)-cardW/2));
-    const cardY=m.t+54;
-    svg.appendChild(ns('rect',{x:cardX,y:cardY,width:cardW,height:cardH,rx:6,class:'restructureCard'}));
-    const title=txt(cardX+10,cardY+17,`EARLY RESTRUCTURE · ${ctl.progress||'SCENARIO'}`,'restructureTitle');
-    const optionRow=(selected>=0&&DATA[selected]&&Number.isFinite(+DATA[selected].restructureOptionValue))?DATA[selected]:DATA.find(d=>Number.isFinite(+d.restructureOptionValue));
-    const option=optionRow?+optionRow.restructureOptionValue:NaN;
-    txt(cardX+10,cardY+36,`REMAINING OPTION VALUE ${Number.isFinite(option)?money(option):'—'} · RELOCATION CURVE REMAINS COUNTERFACTUAL`,'restructureSub');
-    svg.appendChild(ns('circle',{cx:x(last.date),cy:y(last.value),r:4,class:'restructureDot'}));
-  }
+  drawRestructure({enabled:!!$('restructure')?.checked,data:DATA,x,y,m,W,base,svg,ns,txt,money});
 
   if($('process').checked)drawProcess({data:DATA,x,m,W,H,x0,x1,win,leaseExpiration:leaseExpiration(),svg,ns,txt,scheduleEl:$('schedule')});
 
