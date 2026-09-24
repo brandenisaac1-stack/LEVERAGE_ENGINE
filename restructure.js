@@ -31,7 +31,14 @@ function ensurePanel(defaultPct,rerender){
     const input=document.createElement('input');input.type='range';input.min='0';input.max='100';input.step='1';input.id=PANEL_ID+'Range';Object.assign(input.style,{width:'100%',accentColor:BLUE,cursor:'pointer'});
     input.addEventListener('input',()=>{commitmentOverride=+input.value;value.textContent=`${commitmentOverride}%`;rerender()});
     const reset=document.createElement('button');reset.textContent='RESET TO SMARTSHEET';Object.assign(reset.style,{width:'100%',fontSize:'9px',marginTop:'5px'});reset.onclick=()=>{commitmentOverride=null;input.value=String(defaultPct);value.textContent=`${defaultPct}%`;rerender()};
-    panel.append(title,input,value,reset);(document.getElementById('wrap')||document.body).appendChild(panel);
+    panel.append(title,input,value,reset);const impact=document.getElementById('impact');
+    if(impact){
+      Object.assign(impact.style,{position:'relative',paddingRight:'360px',minHeight:'96px'});
+      Object.assign(panel.style,{position:'absolute',right:'10px',top:'8px',left:'auto',width:'340px',zIndex:'30'});
+      impact.appendChild(panel);
+    }else{
+      (document.getElementById('wrap')||document.body).appendChild(panel);
+    }
   }
   const input=document.getElementById(PANEL_ID+'Range'),value=document.getElementById(PANEL_ID+'Value');
   const current=commitmentOverride==null?defaultPct:commitmentOverride;

@@ -8,8 +8,12 @@ const SCENARIO_PANEL_ID='leverageScenarioPanel';
 
 function scenarioEconomics(baseDelta){
   if(!Number.isFinite(+baseDelta))return NaN;
-  const gap=(leverageScenario.tenant-leverageScenario.landlord)/100;
-  const factor=Math.max(0.10,1+(gap*0.60));
+  // Coupled controls alter economics through their net bargaining balance.
+  // 0/0 = exact baseline. Equal shocks largely offset.
+  const t=leverageScenario.tenant/100;
+  const l=leverageScenario.landlord/100;
+  const net=(t-l);
+  const factor=Math.max(.25,1+(net*.50));
   return (+baseDelta)*factor;
 }
 
@@ -20,8 +24,8 @@ function ensureLeverageScenarioPanel(){
   panel=document.createElement('div');
   panel.id=SCENARIO_PANEL_ID;
   Object.assign(panel.style,{
-    position:'absolute',right:'18px',top:'48px',zIndex:'14',
-    width:'315px',padding:'10px 12px',
+    position:'absolute',left:'8px',right:'auto',top:'8px',zIndex:'30',
+    width:'225px',padding:'6px 8px',
     background:'rgba(7,19,33,.97)',border:'1px solid #31506b',
     borderRadius:'7px',boxShadow:'0 8px 24px rgba(0,0,0,.24)',
     fontFamily:'"Courier New",monospace',color:'#c7d7e4'
@@ -121,14 +125,27 @@ function render(){
   if(!DATA.length){svg.innerHTML='';return}
   const win=windowBounds(),P=shapedSeries(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
   ensureLeverageScenarioPanel();
-  const scenarioP=P.map((p,i)=>{
-    const u=P.length>1?i/(P.length-1):0;
-    const event=Math.exp(-0.5*Math.pow((u-.58)/.23,2));
-    const tenantLift=(leverageScenario.tenant/100)*12*event;
-    const landlordLift=(leverageScenario.landlord/100)*12*event;
-    return {...p,
-      plotTenant:Math.max(0,Math.min(100,p.plotTenant+tenantLift)),
-      plotLandlord:Math.max(0,Math.min(100,p.plotLandlord+landlordLift))
+  const baselineP=P.map(p=>({...p}));
+  const tShock=leverageScenario.tenant/100;
+  const lShock=leverageScenario.landlord/100;
+  // Coupled bargaining shock: each control primarily strengthens its own side
+  // and secondarily suppresses the counterparty. Existing curve chronology is preserved.
+  const netTenant=(1.00*tShock)-(0.55*lShock);
+  const netLandlord=(1.00*lShock)-(0.55*tShock);
+
+  const tNeutral=(Math.min(...baselineP.map(p=>p.plotTenant))+Math.max(...baselineP.map(p=>p.plotTenant)))/2;
+  const lNeutral=(Math.min(...baselineP.map(p=>p.plotLandlord))+Math.max(...baselineP.map(p=>p.plotLandlord)))/2;
+
+  const scenarioP=baselineP.map(p=>{
+    const tSignal=p.plotTenant-tNeutral;
+    const lSignal=p.plotLandlord-lNeutral;
+    // Scale only the signal already present in each curve; no new timing event is created.
+    const tValue=p.plotTenant + tSignal*(0.45*netTenant);
+    const lValue=p.plotLandlord + lSignal*(0.45*netLandlord);
+    return {
+      ...p,
+      plotTenant:Math.max(0,Math.min(100,tValue)),
+      plotLandlord:Math.max(0,Math.min(100,lValue))
     };
   });
   P.splice(0,P.length,...scenarioP);
