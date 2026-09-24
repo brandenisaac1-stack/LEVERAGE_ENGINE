@@ -3,6 +3,87 @@ import { drawProcess } from "./process.js?v=20260922-process16-v1";
 import { showPopup } from "./annotations.js";
 import { drawRestructure } from "./restructure.js";
 const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
+let leverageScenario={tenant:0,landlord:0};
+const SCENARIO_PANEL_ID='leverageScenarioPanel';
+
+function scenarioEconomics(baseDelta){
+  if(!Number.isFinite(+baseDelta))return NaN;
+  // Existing engine delta remains the economic baseline.
+  // Slider scenario scales the displayed timing opportunity by the relative
+  // tenant-vs-landlord leverage shift; zero/zero reproduces baseline exactly.
+  const spread=(leverageScenario.tenant-leverageScenario.landlord)/100;
+  return (+baseDelta)*(1+spread);
+}
+
+function ensureLeverageScenarioPanel(){
+  let panel=document.getElementById(SCENARIO_PANEL_ID);
+  if(panel)return panel;
+
+  panel=document.createElement('div');
+  panel.id=SCENARIO_PANEL_ID;
+  Object.assign(panel.style,{
+    position:'absolute',left:'18px',right:'auto',top:'48px',zIndex:'30',
+    width:'315px',padding:'10px 12px',
+    background:'rgba(7,19,33,.97)',border:'1px solid #31506b',
+    borderRadius:'7px',boxShadow:'0 8px 24px rgba(0,0,0,.24)',
+    fontFamily:'"Courier New",monospace',color:'#c7d7e4'
+  });
+
+  const title=document.createElement('div');
+  title.textContent='LEVERAGE SCENARIO';
+  Object.assign(title.style,{fontSize:'11px',fontWeight:'700',color:'#8fdde3',marginBottom:'8px'});
+  panel.appendChild(title);
+
+  const makeSlider=(key,label,color)=>{
+    const wrapRow=document.createElement('div');
+    wrapRow.style.marginBottom='8px';
+    const head=document.createElement('div');
+    Object.assign(head.style,{display:'flex',justifyContent:'space-between',fontSize:'9px',marginBottom:'3px'});
+    const lab=document.createElement('span');lab.textContent=label;lab.style.color=color;
+    const val=document.createElement('span');val.id=`scenario_${key}_value`;val.textContent='0';
+    head.append(lab,val);
+
+    const input=document.createElement('input');
+    input.type='range';input.min='-100';input.max='100';input.step='1';input.value='0';
+    input.id=`scenario_${key}`;
+    Object.assign(input.style,{width:'100%',accentColor:color,cursor:'pointer'});
+    input.addEventListener('input',()=>{
+      leverageScenario[key]=+input.value;
+      val.textContent=(leverageScenario[key]>0?'+':'')+leverageScenario[key];
+      render();
+      updateImpact();
+    });
+    wrapRow.append(head,input);
+    panel.appendChild(wrapRow);
+  };
+
+  makeSlider('tenant','TENANT LEVERAGE','#69c9c6');
+  makeSlider('landlord','LANDLORD LEVERAGE','#f21e32');
+
+  const reset=document.createElement('button');
+  reset.textContent='RESET TO LIVE ENGINE';
+  Object.assign(reset.style,{width:'100%',marginTop:'2px',fontSize:'9px'});
+  reset.onclick=()=>{
+    leverageScenario={tenant:0,landlord:0};
+    for(const key of ['tenant','landlord']){
+      const input=document.getElementById(`scenario_${key}`);
+      const val=document.getElementById(`scenario_${key}_value`);
+      if(input)input.value='0';
+      if(val)val.textContent='0';
+    }
+    render();updateImpact();
+  };
+  panel.appendChild(reset);
+
+  const note=document.createElement('div');
+  note.textContent='0 = LIVE SMARTSHEET / ESRI BASELINE';
+  Object.assign(note.style,{fontSize:'8px',color:'#7890a2',textAlign:'center',marginTop:'5px'});
+  panel.appendChild(note);
+
+  wrap.appendChild(panel);
+  return panel;
+}
+
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;const fmtUTC=d=>`${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(-2)}`;const money=v=>Number.isFinite(+v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(+v):'—';const months=(a,b)=>Math.max(0,Math.round((b-a)/2629800000));const ns=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e};const txt=(x,y,s,cl,an='start')=>{const t=ns('text',{x,y,class:cl,'text-anchor':an});t.textContent=s;svg.appendChild(t);return t};function state(s,c=''){status.textContent=s;status.className='status '+c}
 function pick(fs,cands,req=false){const m=new Map(fs.map(f=>[f.name.toLowerCase(),f.name]));for(const c of cands){if(m.has(c.toLowerCase()))return m.get(c.toLowerCase())}if(req)throw new Error('Required field missing: '+cands.join(' / '));return null}function val(a,k){return fields[k]?a[fields[k]]:null}
 function parseIteration(s){const m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*[-–—]\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(!m)return null;const yr=y=>+y<100?2000+(+y):+y;return{start:new Date(yr(m[3]),+m[1]-1,+m[2]),end:new Date(yr(m[6]),+m[4]-1,+m[5])}}
@@ -41,6 +122,13 @@ function curvePath(pts){if(pts.length<2)return'';let d=`M ${pts[0][0]} ${pts[0][
 function render(){
   if(!DATA.length){svg.innerHTML='';return}
   const win=windowBounds(),P=shapedSeries(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
+  ensureLeverageScenarioPanel();
+  const scenarioP=P.map(p=>({
+    ...p,
+    plotTenant:Math.max(0,Math.min(100,p.plotTenant+leverageScenario.tenant)),
+    plotLandlord:Math.max(0,Math.min(100,p.plotLandlord+leverageScenario.landlord))
+  }));
+  P.splice(0,P.length,...scenarioP);
   const pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
   const min=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3;
   const max=Math.ceil(Math.max(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5+3;
@@ -62,7 +150,7 @@ function render(){
   svg.appendChild(ns('path',{d:ll,fill:'none',stroke:'#f21e32','stroke-width':'2.35'}));
   svg.appendChild(ns('path',{d:tl,fill:'none',stroke:'#69c9c6','stroke-width':'2.35'}));
 
-  drawRestructure({enabled:!!$('restructure')?.checked,data:DATA,plottedSeries:P,x,y,m,W,H,base,svg,ns,txt,selected});
+  drawRestructure({enabled:!!$('restructure')?.checked,data:DATA,plottedSeries:P,scenarioEconomics,x,y,m,W,base,svg,ns,txt,selected});
 
   if($('process').checked)drawProcess({data:DATA,x,m,W,H,x0,x1,win,leaseExpiration:leaseExpiration(),svg,ns,txt,scheduleEl:$('schedule')});
 
@@ -130,6 +218,6 @@ function render(){
   }else popup.hidden=true;
 }
 
-function updateImpact(){const d=selected>=0?DATA[selected]:DATA[0];if(!d)return;const today=+d.npvToday,exec=+d.npvExec,raw=+d.npvDelta;let delta=Number.isFinite(raw)?raw:(Number.isFinite(today)&&Number.isFinite(exec)?today-exec:NaN);const el=$('impactDelta');if(Number.isFinite(delta)){const gain=delta>0,loss=delta<0;el.className='impact-delta '+(gain?'gain':loss?'loss':'neutral');el.textContent=`${gain?'+':loss?'−':''}${money(Math.abs(delta))} VALUE ${gain?'GAINED':loss?'LOST':'CHANGE'} BY EXECUTING IN WINDOW`}else{el.className='impact-delta neutral';el.textContent='FINANCIAL IMPACT AVAILABLE WHEN NPV FIELDS ARE POPULATED'}$('impactNpv').textContent=`NPV TODAY ${money(today)}   |   NPV IN EXECUTION WINDOW ${money(exec)}`}
+function updateImpact(){const d=selected>=0?DATA[selected]:DATA[0];if(!d)return;const today=+d.npvToday,exec=+d.npvExec,raw=+d.npvDelta;let delta=Number.isFinite(raw)?raw:(Number.isFinite(today)&&Number.isFinite(exec)?today-exec:NaN);delta=scenarioEconomics(delta);const el=$('impactDelta');if(Number.isFinite(delta)){const gain=delta>0,loss=delta<0;el.className='impact-delta '+(gain?'gain':loss?'loss':'neutral');el.textContent=`${gain?'+':loss?'−':''}${money(Math.abs(delta))} VALUE ${gain?'GAINED':loss?'LOST':'CHANGE'} BY EXECUTING IN WINDOW`}else{el.className='impact-delta neutral';el.textContent='FINANCIAL IMPACT AVAILABLE WHEN NPV FIELDS ARE POPULATED'}$('impactNpv').textContent=`NPV TODAY ${money(today)}   |   NPV IN EXECUTION WINDOW ${money(exec)}`}
 function choose(i){selected=+i;select.value=String(selected);render();updateImpact()}
 $('login').onclick=signIn;$('centerLogin').onclick=signIn;$('logout').onclick=()=>{idm?.destroyCredentials();location.reload()};select.onchange=()=>choose(select.value);$('anno').onchange=render;$('process').onchange=render;$('sched').onchange=e=>$('schedule').style.display=e.target.checked?'grid':'none';$('restructure').onchange=render;$('clear').onclick=()=>choose(-1);window.onresize=render;window.addEventListener('message',e=>{if(!DATA.length||e?.data?.type!=='lease-leverage-selection')return;let i=DATA.findIndex(d=>String(d.iteration||'').trim()===String(e.data.iteration||'').trim());if(i>=0)choose(i)});setup().catch(e=>{console.error(e);state('Initialization failed','err');msg.innerHTML='<span style="color:#ff9ca7">'+esc(e.message||e)+'</span>'});
