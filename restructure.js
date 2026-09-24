@@ -64,10 +64,20 @@ function retainedForCommitment(pct){
 }
 function focusedMilestones({data,x,m,W,svg,ns,txt,focusBounds}){
   if(!focusBounds)return;
-  const raw=data
+  let raw=data
     .filter(d=>d.restructureDateBreakout instanceof Date&&Number.isFinite(+d.restructureDateBreakout))
     .map(d=>({date:new Date(+d.restructureDateBreakout),phase:String(d.restructureActionPhase??'').trim()}))
     .sort((a,b)=>a.date-b.date);
+  // Same-row fallback: if the dedicated breakout date is temporarily blank in
+  // ArcGIS, the EARLY RESTRUCTURE EXPLORATION chart rows still define the
+  // transaction boundaries. Phase labels continue to come only from the new
+  // restructure action-phase field.
+  if(raw.length<2){
+    raw=data
+      .filter(d=>String(d.processStage??'').trim().toUpperCase()==='EARLY RESTRUCTURE EXPLORATION'&&d.date instanceof Date&&Number.isFinite(+d.date))
+      .map(d=>({date:new Date(+d.date),phase:String(d.restructureActionPhase??'').trim()}))
+      .sort((a,b)=>a.date-b.date);
+  }
   if(raw.length<2)return;
   const uniq=[];for(const d of raw){if(!uniq.length||+uniq.at(-1).date!==+d.date)uniq.push(d)}
   const start=focusBounds.start,end=focusBounds.end;
@@ -80,8 +90,6 @@ function focusedMilestones({data,x,m,W,svg,ns,txt,focusBounds}){
   dateLine.setAttribute('fill','#9fb9cd');dateLine.setAttribute('font-size','10');
 
   const boundaries=uniq.filter(d=>+d.date>=+start&&+d.date<=+end);
-  // The parent bar starts at the true restructure start; breakout dates partition
-  // the internal action phases beneath it without moving the parent start.
   for(let i=0;i<boundaries.length-1;i++){
     const a=boundaries[i],b=boundaries[i+1];
     if(!a.phase)continue;

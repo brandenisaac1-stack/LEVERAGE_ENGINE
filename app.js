@@ -118,15 +118,20 @@ async function setup(){if(!CFG.clientId||!CFG.service){state('Missing configurat
 async function signIn(){try{state('Opening ArcGIS sign-in…','warn');$('login').disabled=true;$('centerLogin').disabled=true;await idm.getCredential(CFG.portal+'/sharing/rest');await load()}catch(e){console.error(e);$('login').hidden=false;$('logout').hidden=true;state('Authentication failed','err');msg.innerHTML='<span style="color:#ff9ca7">Authentication did not complete.</span><br>'+esc(e.message||e);center.hidden=false}finally{$('login').disabled=false;$('centerLogin').disabled=false}}
 async function load(){center.hidden=false;msg.textContent='Authenticated. Loading protected chart data…';state('Loading protected layer…','warn');const layer=new FeatureLayer({url:CFG.service});await layer.load();fields={date:pick(layer.fields,['Chart_dates','chart_dates','chart_date'],true),tenant:pick(layer.fields,['Decision_Curve_0to100','decision_curve_0to100','decision_0to100'],true),landlord:pick(layer.fields,['plot_LL','plot_ll'],true),iteration:pick(layer.fields,['comb_iter','iteration']),phase:pick(layer.fields,['Phases','phase']),processStage:pick(layer.fields,['PROCESS_STAGE','process_stage','Process_Stage','ProcessStage']),processStart:pick(layer.fields,['PROCESS_START_DATE','process_start_date','Process_Start_Date','ProcessStartDate']),executionWindow:pick(layer.fields,['EXECUTION_WINDOW','execution_window','Execution_Window','ExecutionWindow'],true),leaseExpiration:pick(layer.fields,['LEASE_EXPIRATION_DATE','lease_expiration_date','Lease_Expiration_Date','LeaseExpirationDate'],true),restructureProgress:pick(layer.fields,['RESTRUCTURE_PROGRESS','restructure_progress','Restructure_Progress','RestructureProgress']),restructureEffectiveDate:pick(layer.fields,['RESTRUCTURE_EFFECTIVE_DATE','restructure_effective_date','Restructure_Effective_Date','RestructureEffectiveDate']),restructureTenantCurve:pick(layer.fields,['RESTRUCTURE_TENANT_CURVE','restructure_tenant_curve','Restructure_Tenant_Curve','RestructureTenantCurve']),restructureOptionValue:pick(layer.fields,['RESTRUCTURE_OPTION_VALUE','restructure_option_value','Restructure_Option_Value','RestructureOptionValue']),restructureDateBreakout:pick(layer.fields,['restrucutre_date_breakout','RESTRUCUTRE_DATE_BREAKOUT','restructure_date_breakout','RESTRUCTURE_DATE_BREAKOUT']),restructureActionPhase:pick(layer.fields,['restrucutre_action_phase','RESTRUCUTRE_ACTION_PHASE','restructure_action_phase','RESTRUCTURE_ACTION_PHASE']),action:pick(layer.fields,['ACTION_POINT','action_point']),rent:pick(layer.fields,['ACTION_EFFECTIVE_RENT','action_effective_rent']),alev:pick(layer.fields,['ACTION_LEVERAGE','action_leverage']),wait:pick(layer.fields,['NET_WAIT_VALUE_DAY','net_wait_value_day']),chrono:pick(layer.fields,['CHRONOS_ACTION','chronos_action']),read:pick(layer.fields,['chronos_read','economic_read']),npvToday:pick(layer.fields,['ACTION_NPV_CURRENT','action_npv_current']),npvExec:pick(layer.fields,['ACTION_NPV_EXEC_ADJUSTED','action_npv_exec_adjusted']),npvDelta:pick(layer.fields,['ACTION_NPV_TIMING_DELTA','action_npv_timing_delta'])};const out=[...new Set(Object.values(fields).filter(Boolean))];const q=layer.createQuery();q.where=`${fields.tenant} IS NOT NULL AND ${fields.date} IS NOT NULL`;q.outFields=out;q.returnGeometry=false;q.orderByFields=[`${fields.date} ASC`];const r=await layer.queryFeatures(q);DATA=r.features.map(f=>{const a=f.attributes;let t=+val(a,'tenant');if(t<=1.5)t*=100;return{date:new Date(val(a,'date')),tenant:t,landlord:+val(a,'landlord'),iteration:val(a,'iteration'),phase:val(a,'phase'),processStage:val(a,'processStage'),processStart:val(a,'processStart')!=null?new Date(val(a,'processStart')):null,executionWindow:val(a,'executionWindow'),leaseExpiration:val(a,'leaseExpiration')!=null?new Date(val(a,'leaseExpiration')):null,restructureProgress:val(a,'restructureProgress'),restructureEffectiveDate:val(a,'restructureEffectiveDate')!=null?new Date(val(a,'restructureEffectiveDate')):null,restructureTenantCurve:val(a,'restructureTenantCurve')!=null?+val(a,'restructureTenantCurve'):null,restructureOptionValue:val(a,'restructureOptionValue')!=null?+val(a,'restructureOptionValue'):null,restructureDateBreakout:val(a,'restructureDateBreakout')!=null?new Date(val(a,'restructureDateBreakout')):null,restructureActionPhase:val(a,'restructureActionPhase'),action:val(a,'action'),rent:val(a,'rent'),alev:val(a,'alev'),wait:val(a,'wait'),chrono:val(a,'chrono'),read:val(a,'read'),npvToday:val(a,'npvToday'),npvExec:val(a,'npvExec'),npvDelta:val(a,'npvDelta')}}).filter(d=>Number.isFinite(+d.date)&&Number.isFinite(d.tenant)&&Number.isFinite(d.landlord)).sort((a,b)=>a.date-b.date);if(DATA.length<CFG.endRow)throw new Error(`Only ${DATA.length} chart rows returned; windowEndRow is ${CFG.endRow}.`);select.innerHTML='<option value="-1">— none —</option>'+DATA.map((d,i)=>`<option value="${i}">${esc(d.iteration||fmt(d.date))}</option>`).join('');$('login').hidden=true;$('logout').hidden=false;select.disabled=false;$('clear').disabled=false;center.hidden=true;state(`Live · ${DATA.length} chart rows`,'ok');if(CFG.selected){selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim());select.value=String(selected)}render();updateImpact()}
 function restructureFocusBounds(data){
-  const dates=data.map(d=>d.restructureDateBreakout).filter(d=>d instanceof Date&&Number.isFinite(+d)).sort((a,b)=>a-b);
-  if(dates.length<2)return null;
-  const restructureRow=data.find(d=>String(d.processStage??'').trim().toUpperCase()==='EARLY RESTRUCTURE EXPLORATION');
-  const processStart=restructureRow?.processStart instanceof Date&&Number.isFinite(+restructureRow.processStart)?restructureRow.processStart:null;
+  // Focus mode must never silently fall back to the full lease horizon.
+  // Prefer the dedicated breakout dates; if ArcGIS has not populated one of
+  // those values yet, the EARLY RESTRUCTURE EXPLORATION chart dates are the
+  // deterministic fallback because those are the same transaction rows.
+  const stageRows=data.filter(d=>String(d.processStage??'').trim().toUpperCase()==='EARLY RESTRUCTURE EXPLORATION');
+  const breakoutDates=data.map(d=>d.restructureDateBreakout).filter(d=>d instanceof Date&&Number.isFinite(+d)).sort((a,b)=>a-b);
+  const stageDates=stageRows.map(d=>d.date).filter(d=>d instanceof Date&&Number.isFinite(+d)).sort((a,b)=>a-b);
+  const dates=breakoutDates.length>=2?breakoutDates:stageDates;
+  if(dates.length<2)throw new Error('Early Restructure focus requires at least two restructure breakout dates.');
   const effective=data.map(d=>d.restructureEffectiveDate).find(d=>d instanceof Date&&Number.isFinite(+d));
-  const chartStart=restructureRow?.date instanceof Date&&Number.isFinite(+restructureRow.date)?restructureRow.date:null;
-  const start=new Date(+(processStart||effective||chartStart||dates[0]));
+  const start=effective&&+effective<=+dates[0]?new Date(+effective):new Date(+dates[0]);
   const end=new Date(+dates[dates.length-1]);
-  return +end>+start?{start,end}:null;
+  if(+end<=+start)throw new Error('Early Restructure focus end must be after its start.');
+  return {start,end};
 }
 function seriesValueAt(P,ms,key){
   if(!P.length)return NaN;
@@ -206,7 +211,7 @@ function render(){
   }
 
   const wx1=x(win.start),wx2=x(win.end);
-  if(+win.end>=x0&&+win.start<=x1){
+  if(!focusMode&&+win.end>=x0&&+win.start<=x1){
     const sx1=Math.max(m.l,wx1),sx2=Math.min(W-m.r,wx2);
     if(sx2>sx1)svg.appendChild(ns('rect',{x:sx1,y:m.t,width:sx2-sx1,height:ph,class:'windowShade'}));
   }
@@ -247,7 +252,9 @@ function render(){
     txt(cardX+10,cardY+47,timing,'t2');
   }
 
-  // Execution window remains the contextual north star in both views.
+  // Normal mode keeps the full execution-window geometry. Focused mode keeps
+  // only the dates/title as a contextual north star; it does not participate
+  // in the focused X scale.
   if(!focusMode){
     [win.start,win.end].forEach(d=>{const xx=x(d);svg.appendChild(ns('line',{x1:xx,y1:m.t-8,x2:xx,y2:base,class:'guideDash'}))});
     txt((wx1+wx2)/2,m.t+10,'OPTIMAL EXECUTION WINDOW','t1','middle');
@@ -256,16 +263,14 @@ function render(){
     svg.appendChild(ns('path',{d:`M ${wx1+12} ${ay} l 8 -5 M ${wx1+12} ${ay} l 8 5 M ${wx2-12} ${ay} l -8 -5 M ${wx2-12} ${ay} l -8 5`,class:'windowArrow'}));
     txt((wx1+wx2)/2,m.t+45,`${fmt(win.start)} – ${fmt(win.end)}`,'t1','middle');
   }else{
-    const cx=(m.l+W-m.r)/2, ay=m.t+27, half=Math.min(150,pw*.12);
+    const cx=(m.l+(W-m.r))/2;
     txt(cx,m.t+10,'OPTIMAL EXECUTION WINDOW','t1','middle');
-    svg.appendChild(ns('line',{x1:cx-half,y1:ay,x2:cx+half,y2:ay,class:'windowArrow'}));
-    svg.appendChild(ns('path',{d:`M ${cx-half} ${ay} l 8 -5 M ${cx-half} ${ay} l 8 5 M ${cx+half} ${ay} l -8 -5 M ${cx+half} ${ay} l -8 5`,class:'windowArrow'}));
-    txt(cx,m.t+45,`${fmt(win.start)} – ${fmt(win.end)}`,'t1','middle');
+    txt(cx,m.t+29,`${fmt(win.start)} – ${fmt(win.end)}`,'t1','middle');
   }
 
   // Lease expiration is the permanent transaction north star.
   const exp=leaseExpiration();
-  if(+exp>=x0&&+exp<=x1){
+  if(!focusMode&&+exp>=x0&&+exp<=x1){
     const ex=x(exp);
     svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseExpiryGuide',stroke:'#f21e32','stroke-width':'3','stroke-dasharray':'8 4'}));
     const anchor=ex>W-m.r-150?'end':'start';
