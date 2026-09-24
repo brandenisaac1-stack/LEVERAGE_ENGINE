@@ -1,18 +1,16 @@
 import { shapedSeries, curveValueAt } from "./curves.js";
 import { drawProcess } from "./process.js?v=20260922-process16-v1";
 import { showPopup } from "./annotations.js";
-import { drawRestructure } from "./restructure.js?v=20260923-layout-final";
+import { drawRestructure } from "./restructure.js";
 const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 let leverageScenario={tenant:0,landlord:0};
 const SCENARIO_PANEL_ID='leverageScenarioPanel';
 
 function scenarioEconomics(baseDelta){
   if(!Number.isFinite(+baseDelta))return NaN;
-  // Existing engine delta remains the economic baseline.
-  // Slider scenario scales the displayed timing opportunity by the relative
-  // tenant-vs-landlord leverage shift; zero/zero reproduces baseline exactly.
-  const spread=(leverageScenario.tenant-leverageScenario.landlord)/100;
-  return (+baseDelta)*(1+spread);
+  const gap=(leverageScenario.tenant-leverageScenario.landlord)/100;
+  const factor=Math.max(0.10,1+(gap*0.60));
+  return (+baseDelta)*factor;
 }
 
 function ensureLeverageScenarioPanel(){
@@ -22,7 +20,7 @@ function ensureLeverageScenarioPanel(){
   panel=document.createElement('div');
   panel.id=SCENARIO_PANEL_ID;
   Object.assign(panel.style,{
-    position:'absolute',left:'18px',right:'auto',top:'48px',zIndex:'30',
+    position:'absolute',right:'18px',top:'48px',zIndex:'14',
     width:'315px',padding:'10px 12px',
     background:'rgba(7,19,33,.97)',border:'1px solid #31506b',
     borderRadius:'7px',boxShadow:'0 8px 24px rgba(0,0,0,.24)',
@@ -123,11 +121,16 @@ function render(){
   if(!DATA.length){svg.innerHTML='';return}
   const win=windowBounds(),P=shapedSeries(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
   ensureLeverageScenarioPanel();
-  const scenarioP=P.map(p=>({
-    ...p,
-    plotTenant:Math.max(0,Math.min(100,p.plotTenant+leverageScenario.tenant)),
-    plotLandlord:Math.max(0,Math.min(100,p.plotLandlord+leverageScenario.landlord))
-  }));
+  const scenarioP=P.map((p,i)=>{
+    const u=P.length>1?i/(P.length-1):0;
+    const event=Math.exp(-0.5*Math.pow((u-.58)/.23,2));
+    const tenantLift=(leverageScenario.tenant/100)*12*event;
+    const landlordLift=(leverageScenario.landlord/100)*12*event;
+    return {...p,
+      plotTenant:Math.max(0,Math.min(100,p.plotTenant+tenantLift)),
+      plotLandlord:Math.max(0,Math.min(100,p.plotLandlord+landlordLift))
+    };
+  });
   P.splice(0,P.length,...scenarioP);
   const pw=W-m.l-m.r,ph=H-m.t-m.b,x0=+P[0].date,x1=+P.at(-1).date;
   const min=Math.floor(Math.min(...P.flatMap(d=>[d.plotTenant,d.plotLandlord]))/5)*5-3;
