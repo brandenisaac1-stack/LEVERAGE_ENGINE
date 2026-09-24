@@ -69,41 +69,34 @@ function focusedMilestones({data,x,m,W,svg,ns,txt,focusBounds}){
     .map(d=>({date:new Date(+d.restructureDateBreakout),phase:String(d.restructureActionPhase??'').trim()}))
     .sort((a,b)=>a.date-b.date);
   if(raw.length<2)return;
-
-  const uniq=[];
-  for(const d of raw){
-    if(!uniq.length||+uniq.at(-1).date!==+d.date)uniq.push(d);
-    else if(!uniq.at(-1).phase&&d.phase)uniq[uniq.length-1]=d;
-  }
-
+  const uniq=[];for(const d of raw){if(!uniq.length||+uniq.at(-1).date!==+d.date)uniq.push(d)}
   const start=focusBounds.start,end=focusBounds.end;
+  const masterY=m.t+118,masterH=14,phaseY=masterY+34,phaseH=24;
   const left=x(start),right=x(end),width=Math.max(2,right-left);
-  const masterY=m.t+72,masterH=16,phaseY=masterY+38,phaseH=30;
+  svg.appendChild(ns('rect',{x:left,y:masterY,width,height:masterH,rx:7,fill:'#163d5a','fill-opacity':'.72',stroke:BLUE,'stroke-width':'1.6'}));
+  const master=txt((left+right)/2,masterY-9,'EARLY RESTRUCTURE EXPLORATION','','middle');
+  master.setAttribute('fill',BLUE_TEXT);master.setAttribute('font-size','14');master.setAttribute('font-weight','700');
+  const dateLine=txt((left+right)/2,masterY+masterH+15,`${fmtDate(start)} – ${fmtDate(end)}`,'','middle');
+  dateLine.setAttribute('fill','#9fb9cd');dateLine.setAttribute('font-size','10');
 
-  // Parent bar is the drill-down itself and therefore spans the entire focused domain.
-  svg.appendChild(ns('rect',{x:left,y:masterY,width,height:masterH,rx:7,fill:'#163d5a','fill-opacity':'.78',stroke:BLUE,'stroke-width':'1.8'}));
-  const master=txt((left+right)/2,masterY-10,'EARLY RESTRUCTURE EXPLORATION','','middle');
-  master.setAttribute('fill',BLUE_TEXT);master.setAttribute('font-size','15');master.setAttribute('font-weight','700');
-  const dateLine=txt((left+right)/2,masterY+masterH+16,`${fmtDate(start)} – ${fmtDate(end)}`,'','middle');
-  dateLine.setAttribute('fill','#b6cad8');dateLine.setAttribute('font-size','10');
-
-  // Breakouts are boundaries. A phase owns the exact elapsed time from its
-  // breakout date to the next breakout date.
   const boundaries=uniq.filter(d=>+d.date>=+start&&+d.date<=+end);
-  const colors=['#45c78b','#d5a62e','#d66bc7'];
+  // The parent bar starts at the true restructure start; breakout dates partition
+  // the internal action phases beneath it without moving the parent start.
   for(let i=0;i<boundaries.length-1;i++){
     const a=boundaries[i],b=boundaries[i+1];
     if(!a.phase)continue;
-    const x1=x(a.date),x2=x(b.date),w=Math.max(2,x2-x1),c=colors[i%colors.length];
-    svg.appendChild(ns('rect',{x:x1+1,y:phaseY,width:Math.max(2,w-2),height:phaseH,rx:5,fill:c,'fill-opacity':'.18',stroke:c,'stroke-width':'1.6'}));
-    const title=txt((x1+x2)/2,phaseY+12,a.phase,'','middle');
-    title.setAttribute('fill',c);title.setAttribute('font-size',w<260?'9':'10');title.setAttribute('font-weight','700');
-    const dates=txt((x1+x2)/2,phaseY+25,`${fmtDate(a.date)} – ${fmtDate(new Date(+b.date-86400000))}`,'','middle');
-    dates.setAttribute('fill','#b6cad8');dates.setAttribute('font-size','8');
-    svg.appendChild(ns('line',{x1:x1,y1:masterY-5,x2:x1,y2:phaseY+phaseH+6,stroke:c,'stroke-width':'1','stroke-dasharray':'3 3',opacity:'.7'}));
+    const x1=x(a.date),x2=x(b.date),w=Math.max(2,x2-x1);
+    const colors=['#45c78b','#d5a62e','#d66bc7'];
+    const c=colors[i%colors.length];
+    svg.appendChild(ns('rect',{x:x1+1,y:phaseY,width:Math.max(2,w-2),height:phaseH,rx:5,fill:c,'fill-opacity':'.16',stroke:c,'stroke-width':'1.5'}));
+    const title=txt((x1+x2)/2,phaseY+10,a.phase,'','middle');
+    title.setAttribute('fill',c);title.setAttribute('font-size',w<230?'9':'10');title.setAttribute('font-weight','700');
+    const dates=txt((x1+x2)/2,phaseY+21,`${fmtDate(a.date)} – ${fmtDate(new Date(+b.date-86400000))}`,'','middle');
+    dates.setAttribute('fill','#9fb9cd');dates.setAttribute('font-size','8');
+    svg.appendChild(ns('line',{x1:x1,y1:masterY-4,x2:x1,y2:phaseY+phaseH+5,stroke:c,'stroke-width':'1','stroke-dasharray':'3 3',opacity:'.65'}));
   }
-  const finalX=x(end);
-  svg.appendChild(ns('line',{x1:finalX,y1:masterY-5,x2:finalX,y2:phaseY+phaseH+6,stroke:'#d66bc7','stroke-width':'1','stroke-dasharray':'3 3',opacity:'.7'}));
+  const lx=x(boundaries.at(-1)?.date||end);
+  svg.appendChild(ns('line',{x1:lx,y1:masterY-4,x2:lx,y2:phaseY+phaseH+5,stroke:'#d66bc7','stroke-width':'1','stroke-dasharray':'3 3',opacity:'.65'}));
 }
 function fmtDate(d){return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`}
 function drawRestructure({enabled,data,plottedSeries,x,y,m,W,H,base,svg,ns,txt,selected=-1,scenarioEconomics,focused=false,focusBounds=null}){
