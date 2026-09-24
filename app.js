@@ -8,13 +8,10 @@ const SCENARIO_PANEL_ID='leverageScenarioPanel';
 
 function scenarioEconomics(baseDelta){
   if(!Number.isFinite(+baseDelta))return NaN;
-  // Coupled controls alter economics through their net bargaining balance.
-  // 0/0 = exact baseline. Equal shocks largely offset.
-  const t=leverageScenario.tenant/100;
-  const l=leverageScenario.landlord/100;
-  const net=(t-l);
-  const factor=Math.max(.25,1+(net*.50));
-  return (+baseDelta)*factor;
+  const t=Math.max(-1,Math.min(1,leverageScenario.tenant/100));
+  const l=Math.max(-1,Math.min(1,leverageScenario.landlord/100));
+  const relative=t-l;
+  return (+baseDelta)*Math.max(.20,1+(relative*.55));
 }
 
 function ensureLeverageScenarioPanel(){
@@ -24,7 +21,7 @@ function ensureLeverageScenarioPanel(){
   panel=document.createElement('div');
   panel.id=SCENARIO_PANEL_ID;
   Object.assign(panel.style,{
-    position:'absolute',left:'8px',right:'auto',top:'8px',zIndex:'30',
+    position:'absolute',left:'62px',right:'auto',top:'8px',zIndex:'30',
     width:'225px',padding:'6px 8px',
     background:'rgba(7,19,33,.97)',border:'1px solid #31506b',
     borderRadius:'7px',boxShadow:'0 8px 24px rgba(0,0,0,.24)',
@@ -63,7 +60,7 @@ function ensureLeverageScenarioPanel(){
   makeSlider('landlord','LANDLORD LEVERAGE','#f21e32');
 
   const reset=document.createElement('button');
-  reset.textContent='RESET TO LIVE ENGINE';
+  reset.textContent='RESET TO BASELINE';
   Object.assign(reset.style,{width:'100%',marginTop:'2px',fontSize:'9px'});
   reset.onclick=()=>{
     leverageScenario={tenant:0,landlord:0};
@@ -78,7 +75,7 @@ function ensureLeverageScenarioPanel(){
   panel.appendChild(reset);
 
   const note=document.createElement('div');
-  note.textContent='0 = LIVE SMARTSHEET / ESRI BASELINE';
+  note.textContent='0 = MODEL BASELINE';
   Object.assign(note.style,{fontSize:'8px',color:'#7890a2',textAlign:'center',marginTop:'5px'});
   panel.appendChild(note);
 
@@ -126,26 +123,39 @@ function render(){
   const win=windowBounds(),P=shapedSeries(DATA,win),W=wrap.clientWidth,H=wrap.clientHeight,m={l:58,r:20,t:68,b:32};
   ensureLeverageScenarioPanel();
   const baselineP=P.map(p=>({...p}));
-  const tShock=leverageScenario.tenant/100;
-  const lShock=leverageScenario.landlord/100;
-  // Coupled bargaining shock: each control primarily strengthens its own side
-  // and secondarily suppresses the counterparty. Existing curve chronology is preserved.
-  const netTenant=(1.00*tShock)-(0.55*lShock);
-  const netLandlord=(1.00*lShock)-(0.55*tShock);
+  const tShock=Math.max(-1,Math.min(1,leverageScenario.tenant/100));
+  const lShock=Math.max(-1,Math.min(1,leverageScenario.landlord/100));
 
-  const tNeutral=(Math.min(...baselineP.map(p=>p.plotTenant))+Math.max(...baselineP.map(p=>p.plotTenant)))/2;
-  const lNeutral=(Math.min(...baselineP.map(p=>p.plotLandlord))+Math.max(...baselineP.map(p=>p.plotLandlord)))/2;
+  // Coupled bargaining system:
+  // own-side strength magnifies its favorable deviation while counterparty
+  // strength compresses it toward a neutral start/end chord.
+  const tenantNet=tShock-(0.55*lShock);
+  const landlordNet=lShock-(0.55*tShock);
 
-  const scenarioP=baselineP.map(p=>{
-    const tSignal=p.plotTenant-tNeutral;
-    const lSignal=p.plotLandlord-lNeutral;
-    // Scale only the signal already present in each curve; no new timing event is created.
-    const tValue=p.plotTenant + tSignal*(0.45*netTenant);
-    const lValue=p.plotLandlord + lSignal*(0.45*netLandlord);
-    return {
-      ...p,
-      plotTenant:Math.max(0,Math.min(100,tValue)),
-      plotLandlord:Math.max(0,Math.min(100,lValue))
+  const t0=baselineP[0].plotTenant,t1=baselineP[baselineP.length-1].plotTenant;
+  const l0=baselineP[0].plotLandlord,l1=baselineP[baselineP.length-1].plotLandlord;
+
+  const scenarioP=baselineP.map((p,i)=>{
+    const u=baselineP.length>1?i/(baselineP.length-1):0;
+    const envelope=Math.sin(Math.PI*u);
+    const tn=t0+(t1-t0)*u;
+    const ln=l0+(l1-l0)*u;
+    const ts=p.plotTenant-tn;
+    const ls=p.plotLandlord-ln;
+
+    // Positive landlord strength raises/flattens a landlord-disadvantage trough
+    // by compressing negative landlord signal toward neutral; positive tenant
+    // strength does the analogous thing for tenant bargaining power.
+    const tScale=tenantNet>=0
+      ? 1+(0.80*tenantNet*envelope)
+      : Math.max(.08,1+(0.92*tenantNet*envelope));
+    const lScale=landlordNet>=0
+      ? (ls<0?Math.max(.08,1-(0.92*landlordNet*envelope)):1+(0.55*landlordNet*envelope))
+      : Math.max(.08,1+(0.80*landlordNet*envelope));
+
+    return {...p,
+      plotTenant:Math.max(0,Math.min(100,tn+ts*tScale)),
+      plotLandlord:Math.max(0,Math.min(100,ln+ls*lScale))
     };
   });
   P.splice(0,P.length,...scenarioP);
@@ -238,6 +248,8 @@ function render(){
   }else popup.hidden=true;
 }
 
-function updateImpact(){const d=selected>=0?DATA[selected]:DATA[0];if(!d)return;const today=+d.npvToday,exec=+d.npvExec,raw=+d.npvDelta;let delta=Number.isFinite(raw)?raw:(Number.isFinite(today)&&Number.isFinite(exec)?today-exec:NaN);delta=scenarioEconomics(delta);const el=$('impactDelta');if(Number.isFinite(delta)){const gain=delta>0,loss=delta<0;el.className='impact-delta '+(gain?'gain':loss?'loss':'neutral');el.textContent=`${gain?'+':loss?'−':''}${money(Math.abs(delta))} VALUE ${gain?'GAINED':loss?'LOST':'CHANGE'} BY EXECUTING IN WINDOW`}else{el.className='impact-delta neutral';el.textContent='FINANCIAL IMPACT AVAILABLE WHEN NPV FIELDS ARE POPULATED'}$('impactNpv').textContent=`NPV TODAY ${money(today)}   |   NPV IN EXECUTION WINDOW ${money(exec)}`}
+function updateImpact(){const d=selected>=0?DATA[selected]:DATA[0];if(!d)return;const today=+d.npvToday,exec=+d.npvExec,raw=+d.npvDelta;let delta=Number.isFinite(raw)?raw:(Number.isFinite(today)&&Number.isFinite(exec)?today-exec:NaN);const baselineDelta=delta;
+  delta=scenarioEconomics(baselineDelta);
+  if(Number.isFinite(today)&&Number.isFinite(delta))exec=today-delta;const el=$('impactDelta');if(Number.isFinite(delta)){const gain=delta>0,loss=delta<0;el.className='impact-delta '+(gain?'gain':loss?'loss':'neutral');el.textContent=`${gain?'+':loss?'−':''}${money(Math.abs(delta))} VALUE ${gain?'GAINED':loss?'LOST':'CHANGE'} BY EXECUTING IN WINDOW`}else{el.className='impact-delta neutral';el.textContent='FINANCIAL IMPACT AVAILABLE WHEN NPV FIELDS ARE POPULATED'}$('impactNpv').textContent=`NPV TODAY ${money(today)}   |   NPV IN EXECUTION WINDOW ${money(exec)}`}
 function choose(i){selected=+i;select.value=String(selected);render();updateImpact()}
 $('login').onclick=signIn;$('centerLogin').onclick=signIn;$('logout').onclick=()=>{idm?.destroyCredentials();location.reload()};select.onchange=()=>choose(select.value);$('anno').onchange=render;$('process').onchange=render;$('sched').onchange=e=>$('schedule').style.display=e.target.checked?'grid':'none';$('restructure').onchange=render;$('clear').onclick=()=>choose(-1);window.onresize=render;window.addEventListener('message',e=>{if(!DATA.length||e?.data?.type!=='lease-leverage-selection')return;let i=DATA.findIndex(d=>String(d.iteration||'').trim()===String(e.data.iteration||'').trim());if(i>=0)choose(i)});setup().catch(e=>{console.error(e);state('Initialization failed','err');msg.innerHTML='<span style="color:#ff9ca7">'+esc(e.message||e)+'</span>'});

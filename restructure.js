@@ -30,14 +30,21 @@ function ensurePanel(defaultPct,rerender){
     const value=document.createElement('div');value.id=PANEL_ID+'Value';Object.assign(value.style,{color:BLUE_TEXT,textAlign:'center',fontSize:'12px',fontWeight:'700'});
     const input=document.createElement('input');input.type='range';input.min='0';input.max='100';input.step='1';input.id=PANEL_ID+'Range';Object.assign(input.style,{width:'100%',accentColor:BLUE,cursor:'pointer'});
     input.addEventListener('input',()=>{commitmentOverride=+input.value;value.textContent=`${commitmentOverride}%`;rerender()});
-    const reset=document.createElement('button');reset.textContent='RESET TO SMARTSHEET';Object.assign(reset.style,{width:'100%',fontSize:'9px',marginTop:'5px'});reset.onclick=()=>{commitmentOverride=null;input.value=String(defaultPct);value.textContent=`${defaultPct}%`;rerender()};
+    const reset=document.createElement('button');reset.textContent='RESET TO BASELINE';Object.assign(reset.style,{width:'100%',fontSize:'9px',marginTop:'5px'});reset.onclick=()=>{commitmentOverride=null;input.value=String(defaultPct);value.textContent=`${defaultPct}%`;rerender()};
     panel.append(title,input,value,reset);const impact=document.getElementById('impact');
     if(impact){
       Object.assign(impact.style,{position:'relative',paddingRight:'360px',minHeight:'96px'});
       Object.assign(panel.style,{position:'absolute',right:'10px',top:'8px',left:'auto',width:'340px',zIndex:'30'});
       impact.appendChild(panel);
     }else{
+      const impact=document.getElementById('impact');
+    if(impact){
+      Object.assign(impact.style,{position:'relative',paddingRight:'365px',minHeight:'126px'});
+      Object.assign(panel.style,{position:'absolute',right:'10px',top:'7px',left:'auto',width:'345px',zIndex:'30'});
+      impact.appendChild(panel);
+    }else{
       (document.getElementById('wrap')||document.body).appendChild(panel);
+    }
     }
   }
   const input=document.getElementById(PANEL_ID+'Range'),value=document.getElementById(PANEL_ID+'Value');
@@ -82,7 +89,7 @@ function drawRestructure({enabled,data,plottedSeries,x,y,m,W,base,svg,ns,txt,sel
   svg.appendChild(ns('rect',{x:cx,y:cy,width:cw,height:ch,rx:7,fill:'#071321','fill-opacity':'.97',stroke:BLUE,'stroke-width':'1.4'}));
   const line=(yy,s,c='#c7d7e4',sz='10')=>{const t=txt(cx+12,yy,s,'','start');t.setAttribute('fill',c);t.setAttribute('font-size',sz);t.setAttribute('font-weight','700')};
   line(cy+19,`EARLY RESTRUCTURE · ${label(ctl.progress)}`,BLUE_TEXT,'12');
-  line(cy+39,`SMARTSHEET STATE · ${sourcePct}%`);
+  line(cy+39,`BASELINE STATE · ${sourcePct}%`);
   line(cy+57,`SCENARIO COMMITMENT · ${Math.round(commitment)}%`);
   line(cy+75,`OPTIONALITY RETAINED · ${Math.round(retained*100)}%`);
   line(cy+92,`OPTIONALITY VALUE REMAINING · ${cash(remaining)}`,'#c7d7e4','9');
