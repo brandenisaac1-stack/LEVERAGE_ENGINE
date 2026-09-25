@@ -60,7 +60,7 @@ function shortLabel(stage,width){
   if(s.includes('EARLY RESTRUCTURE'))return width<110?'EARLY RESTRUCTURE EXPLORATION':'EARLY RESTRUCTURE EXPLORATION';
   if(s.includes('TERM SHEET')||s.includes('LOI'))return width<110?'RESTRUCTURE TERM SHEET':'RENEWAL TERM SHEET NEGOTIATIONS';
   if(s.includes('LEASE AMEND'))return 'RESTRUCTURE LEASE AMENDMENT';
-  if(s.includes('SPACE REFRESH'))return width<110?'REFRESH / RECONFIGURATION':'SPACE REFRESH (PAINT/CARPET)';
+  if(s.includes('SPACE REFRESH'))return width<110?'REFRESH / RECONFIGURATION':'SPACE REFRESH';
   return stage;
 }
 
