@@ -18,13 +18,37 @@ function buildStageModel(data,leaseExpiration){
   return ordered.map((r,i)=>{const next=ordered[i+1],terminal=next?.date||exp||rows.at(-1).date,end=validDate(terminal),hasSpan=end&&+end>+r.date;return{key:r.stage,start:new Date(+r.date),exclusiveEnd:hasSpan?new Date(+end):new Date(+r.date),displayEnd:hasSpan?dayBefore(end):new Date(+r.date),duration:hasSpan?monthDuration(r.date,end):0,color:PALETTE[i%PALETTE.length],lane:.24+(i%7)*.095,description:description(r.stage),pointOnly:!hasSpan}})
 }
 
+function restructureLane(stage){
+  const s=stage.toUpperCase();
+  // Preserve the normal process vertical architecture: Early Restructure,
+  // Term Sheet/LOI and Lease Negotiations keep their familiar lanes while
+  // Market Evaluation and downstream relocation/buildout stages disappear.
+  if(s.includes('EARLY RESTRUCTURE'))return .43;
+  if(s.includes('TERM SHEET')||s.includes('LOI'))return .62;
+  if(s.includes('LEASE AMEND')||s.includes('LEASE NEGOT'))return .715;
+  if(s.includes('SPACE REFRESH'))return .81;
+  return .62;
+}
+
 function buildRestructureModel(data){
-  const phases=data.map(d=>({key:cleanStage(d.restructureActionPhase),start:validDate(d.restructureDateBreakout),end:validDate(d.restructurePhaseEndDate)})).filter(p=>p.key&&p.start&&p.end&&+p.end>+p.start).sort((a,b)=>+a.start-+b.start);
+  const phases=data.map(d=>({
+    key:cleanStage(d.restructureActionPhase),
+    start:validDate(d.restructureDateBreakout),
+    end:validDate(d.restructurePhaseEndDate)
+  })).filter(p=>p.key&&p.start&&p.end&&+p.end>+p.start).sort((a,b)=>+a.start-+b.start);
   if(!phases.length)return[];
   const firstStart=phases[0].start;
-  // Preserve normal stages that genuinely occur before the alternate renewal path begins.
-  const normalBefore=buildStageModel(data,null).filter(p=>+p.start<+firstStart&&!p.key.toUpperCase().includes('RESTRUCTURE')).map((p,i)=>({...p,lane:.24+(i%2)*.095}));
-  const alt=phases.map((p,i)=>({key:p.key,start:p.start,exclusiveEnd:p.end,displayEnd:p.end,duration:monthDuration(p.start,p.end),color:RESTRUCTURE_COLORS[i%RESTRUCTURE_COLORS.length],lane:.24+((normalBefore.length+i)%7)*.095,description:description(p.key),pointOnly:false,restructure:true}));
+  // Only the pre-restructure normal stages survive the alternate renewal path.
+  const normalBefore=buildStageModel(data,null)
+    .filter(p=>+p.start<+firstStart&&!p.key.toUpperCase().includes('RESTRUCTURE'))
+    .map((p,i)=>({...p,lane:.24+(i%2)*.095}));
+  const alt=phases.map((p,i)=>({
+    key:p.key,start:p.start,exclusiveEnd:p.end,displayEnd:p.end,
+    duration:monthDuration(p.start,p.end),
+    color:RESTRUCTURE_COLORS[i%RESTRUCTURE_COLORS.length],
+    lane:restructureLane(p.key),
+    description:description(p.key),pointOnly:false,restructure:true
+  }));
   return [...normalBefore,...alt];
 }
 
@@ -41,8 +65,11 @@ function shortLabel(stage,width){
 }
 
 function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl,restructureMode=false}){
-  const model=restructureMode?buildRestructureModel(data):buildStageModel(data,leaseExpiration);
-  syncSchedule(scheduleEl,model);if(!model.length)return;
+  const normalModel=buildStageModel(data,leaseExpiration);
+  const model=restructureMode?buildRestructureModel(data):normalModel;
+  // Tim redesign changes only the chart process overlay. The existing bottom
+  // schedule remains the familiar full transaction roadmap.
+  syncSchedule(scheduleEl,normalModel);if(!model.length)return;
   const defs=svg.querySelector('defs')||svg.insertBefore(ns('defs'),svg.firstChild);
   model.forEach((p,i)=>{
     const a=Math.max(m.l,x(p.start)),yy=m.t+(H-m.t-32)*p.lane;

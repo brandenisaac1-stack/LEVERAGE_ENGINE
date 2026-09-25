@@ -1,7 +1,7 @@
 import { shapedSeries, curveValueAt } from "./curves.js";
-import { drawProcess } from "./process.js?v=20260922-process16-v1";
+import { drawProcess } from "./process.js?v=20260925-tim-restructure-v2";
 import { showPopup } from "./annotations.js";
-import { drawRestructure } from "./restructure.js";
+import { drawRestructure } from "./restructure.js?v=20260925-tim-restructure-v2";
 const qs=new URLSearchParams(location.search);const CFG={clientId:qs.get('clientId')||'',service:qs.get('service')||'',portal:qs.get('portal')||'https://www.arcgis.com',startRow:+(qs.get('windowStartRow')||13),endRow:+(qs.get('windowEndRow')||17),selected:qs.get('selected')||qs.get('iteration')||''};const $=id=>document.getElementById(id);const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),status=$('status'),center=$('center'),msg=$('msg');let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 let leverageScenario={tenant:0,landlord:0};
 const SCENARIO_PANEL_ID='leverageScenarioPanel';
