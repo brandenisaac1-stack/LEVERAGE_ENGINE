@@ -24,9 +24,9 @@ function restructureLane(stage){
   // Term Sheet/LOI and Lease Negotiations keep their familiar lanes while
   // Market Evaluation and downstream relocation/buildout stages disappear.
   if(s.includes('EARLY RESTRUCTURE'))return .43;
-  if(s.includes('TERM SHEET')||s.includes('LOI'))return .62;
-  if(s.includes('LEASE AMEND')||s.includes('LEASE NEGOT'))return .715;
-  if(s.includes('SPACE REFRESH'))return .81;
+  if(s.includes('TERM SHEET')||s.includes('LOI'))return .525;
+  if(s.includes('LEASE AMEND')||s.includes('LEASE NEGOT'))return .62;
+  if(s.includes('SPACE REFRESH'))return .715;
   return .62;
 }
 
@@ -52,7 +52,7 @@ function buildRestructureModel(data){
   return [...normalBefore,...alt];
 }
 
-function syncSchedule(el,model){if(!el)return;el.innerHTML='';el.style.gridTemplateColumns=`repeat(${Math.max(1,model.length)},minmax(0,1fr))`;for(const p of model){const box=document.createElement('div');box.className='phasebox dynamicPhase';box.style.setProperty('--stage-color',p.color);box.style.borderTop=`3px solid ${p.color}`;const strong=document.createElement('strong');strong.textContent=p.key;strong.style.setProperty('color',p.color,'important');const tiny=document.createElement('span');tiny.className='tiny';tiny.textContent=p.pointOnly?`${fmtDate(p.start)} · MILESTONE · ${p.description}`:`${fmtDate(p.start)} – ${fmtDate(p.displayEnd)} · ${p.description}`;box.append(strong,tiny);el.appendChild(box)}}
+function syncSchedule(el,model){if(!el)return;el.innerHTML='';el.style.gridTemplateColumns=`repeat(${Math.max(1,model.length)},minmax(0,1fr))`;for(const p of model){const box=document.createElement('div');box.className='phasebox dynamicPhase';box.style.setProperty('--stage-color',p.color);box.style.borderTop=`3px solid ${p.color}`;const strong=document.createElement('strong');strong.textContent=p.key;strong.style.setProperty('color',p.color,'important');const tiny=document.createElement('span');tiny.className='tiny';tiny.textContent=p.pointOnly?`${fmtDate(p.start)} · MILESTONE · ${p.description}`:`${fmtDate(p.start)} · ${p.duration} MO · ${p.description}`;box.append(strong,tiny);el.appendChild(box)}}
 
 function shortLabel(stage,width){
   if(width>=230)return stage;
@@ -67,9 +67,9 @@ function shortLabel(stage,width){
 function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl,restructureMode=false}){
   const normalModel=buildStageModel(data,leaseExpiration);
   const model=restructureMode?buildRestructureModel(data):normalModel;
-  // Tim redesign changes only the chart process overlay. The existing bottom
-  // schedule remains the familiar full transaction roadmap.
-  syncSchedule(scheduleEl,normalModel);if(!model.length)return;
+  // Keep the bottom schedule synchronized with the exact process model shown on the chart.
+  // Normal mode = normal roadmap; Early Restructure mode = alternate restructure roadmap.
+  syncSchedule(scheduleEl,model);if(!model.length)return;
   const defs=svg.querySelector('defs')||svg.insertBefore(ns('defs'),svg.firstChild);
   model.forEach((p,i)=>{
     const a=Math.max(m.l,x(p.start)),yy=m.t+(H-m.t-32)*p.lane;
@@ -78,9 +78,9 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl,restruc
     const width=b-a,id=`processGradientLive${i}`;const g=ns('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'0%'});g.appendChild(ns('stop',{offset:'0%','stop-color':p.color,'stop-opacity':'.10'}));g.appendChild(ns('stop',{offset:'50%','stop-color':p.color,'stop-opacity':'.34'}));g.appendChild(ns('stop',{offset:'100%','stop-color':p.color,'stop-opacity':'.10'}));defs.appendChild(g);
     svg.appendChild(ns('rect',{x:a,y:yy-8,width,height:16,rx:6,fill:`url(#${id})`,stroke:p.color,'stroke-width':'1.6','stroke-opacity':'.9'}));
     const mid=(a+b)/2,titleText=p.restructure?shortLabel(p.key,width):p.key;
-    const title=txt(mid,yy-14,titleText,'proc','middle');title.setAttribute('fill',p.color);title.style.setProperty('font-size',p.restructure?(width<90?'9px':width<150?'11px':'14px'):'16px','important');title.style.setProperty('font-weight','700','important');title.style.setProperty('paint-order','stroke','important');title.style.setProperty('stroke','#06101f','important');title.style.setProperty('stroke-width','2px','important');
-    const dateText=p.restructure?`${fmtDate(p.start)} – ${fmtDate(p.displayEnd)}`:`${fmtDate(p.start)} · ${p.duration} MO`;
-    const sub=txt(mid,yy+21,dateText,'axis','middle');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size',p.restructure?(width<90?'8px':width<150?'10px':'13px'):'16px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#06101f','important');sub.style.setProperty('stroke-width','2px','important');
+    const title=txt(mid,yy-14,titleText,'proc','middle');title.setAttribute('fill',p.color);title.style.setProperty('font-size','16px','important');title.style.setProperty('font-weight','700','important');title.style.setProperty('paint-order','stroke','important');title.style.setProperty('stroke','#06101f','important');title.style.setProperty('stroke-width','2px','important');
+    const dateText=`${fmtDate(p.start)} · ${p.duration} MO`;
+    const sub=txt(mid,yy+21,dateText,'axis','middle');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','16px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#06101f','important');sub.style.setProperty('stroke-width','2px','important');
   })
 }
 export {drawProcess,buildStageModel,buildRestructureModel};
