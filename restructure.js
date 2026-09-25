@@ -62,56 +62,11 @@ function retainedForCommitment(pct){
   }
   return 0;
 }
-function focusedMilestones({data,x,m,W,svg,ns,txt,focusBounds}){
-  if(!focusBounds)return;
-  let raw=data
-    .filter(d=>d.restructureDateBreakout instanceof Date&&Number.isFinite(+d.restructureDateBreakout))
-    .map(d=>({date:new Date(+d.restructureDateBreakout),phase:String(d.restructureActionPhase??'').trim()}))
-    .sort((a,b)=>a.date-b.date);
-  // Same-row fallback: if the dedicated breakout date is temporarily blank in
-  // ArcGIS, the EARLY RESTRUCTURE EXPLORATION chart rows still define the
-  // transaction boundaries. Phase labels continue to come only from the new
-  // restructure action-phase field.
-  if(raw.length<2){
-    raw=data
-      .filter(d=>String(d.processStage??'').trim().toUpperCase()==='EARLY RESTRUCTURE EXPLORATION'&&d.date instanceof Date&&Number.isFinite(+d.date))
-      .map(d=>({date:new Date(+d.date),phase:String(d.restructureActionPhase??'').trim()}))
-      .sort((a,b)=>a.date-b.date);
-  }
-  if(raw.length<2)return;
-  const uniq=[];for(const d of raw){if(!uniq.length||+uniq.at(-1).date!==+d.date)uniq.push(d)}
-  const start=focusBounds.start,end=focusBounds.end;
-  const masterY=m.t+118,masterH=14,phaseY=masterY+34,phaseH=24;
-  const left=x(start),right=x(end),width=Math.max(2,right-left);
-  svg.appendChild(ns('rect',{x:left,y:masterY,width,height:masterH,rx:7,fill:'#163d5a','fill-opacity':'.72',stroke:BLUE,'stroke-width':'1.6'}));
-  const master=txt((left+right)/2,masterY-9,'EARLY RESTRUCTURE EXPLORATION','','middle');
-  master.setAttribute('fill',BLUE_TEXT);master.setAttribute('font-size','14');master.setAttribute('font-weight','700');
-  const dateLine=txt((left+right)/2,masterY+masterH+15,`${fmtDate(start)} – ${fmtDate(end)}`,'','middle');
-  dateLine.setAttribute('fill','#9fb9cd');dateLine.setAttribute('font-size','10');
-
-  const boundaries=uniq.filter(d=>+d.date>=+start&&+d.date<=+end);
-  for(let i=0;i<boundaries.length-1;i++){
-    const a=boundaries[i],b=boundaries[i+1];
-    if(!a.phase)continue;
-    const x1=x(a.date),x2=x(b.date),w=Math.max(2,x2-x1);
-    const colors=['#45c78b','#d5a62e','#d66bc7'];
-    const c=colors[i%colors.length];
-    svg.appendChild(ns('rect',{x:x1+1,y:phaseY,width:Math.max(2,w-2),height:phaseH,rx:5,fill:c,'fill-opacity':'.16',stroke:c,'stroke-width':'1.5'}));
-    const title=txt((x1+x2)/2,phaseY+10,a.phase,'','middle');
-    title.setAttribute('fill',c);title.setAttribute('font-size',w<230?'9':'10');title.setAttribute('font-weight','700');
-    const dates=txt((x1+x2)/2,phaseY+21,`${fmtDate(a.date)} – ${fmtDate(new Date(+b.date-86400000))}`,'','middle');
-    dates.setAttribute('fill','#9fb9cd');dates.setAttribute('font-size','8');
-    svg.appendChild(ns('line',{x1:x1,y1:masterY-4,x2:x1,y2:phaseY+phaseH+5,stroke:c,'stroke-width':'1','stroke-dasharray':'3 3',opacity:'.65'}));
-  }
-  const lx=x(boundaries.at(-1)?.date||end);
-  svg.appendChild(ns('line',{x1:lx,y1:masterY-4,x2:lx,y2:phaseY+phaseH+5,stroke:'#d66bc7','stroke-width':'1','stroke-dasharray':'3 3',opacity:'.65'}));
-}
 function fmtDate(d){return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`}
-function drawRestructure({enabled,data,plottedSeries,x,y,m,W,H,base,svg,ns,txt,selected=-1,scenarioEconomics,focused=false,focusBounds=null}){
+function drawRestructure({enabled,data,plottedSeries,x,y,m,W,H,base,svg,ns,txt,selected=-1,scenarioEconomics}){
   if(!enabled){removePanel();return}
   if(!Array.isArray(data)||!data.length||!Array.isArray(plottedSeries)||!plottedSeries.length)return;
   const P=plottedSeries,ctl=controls(data);if(!ctl.effective)return;
-  if(focused)focusedMilestones({data,x,m,W,svg,ns,txt,focusBounds});
   const sourcePct=pct(ctl.progress);
   ensurePanel(sourcePct,()=>window.dispatchEvent(new Event('resize')));
   const commitment=clamp(commitmentOverride==null?sourcePct:commitmentOverride,0,100);
@@ -131,7 +86,6 @@ function drawRestructure({enabled,data,plottedSeries,x,y,m,W,H,base,svg,ns,txt,s
   const leverageAdjusted=typeof scenarioEconomics==='function'?scenarioEconomics(fullOption):fullOption;
   const remaining=commitment>=100?0:(Number.isFinite(leverageAdjusted)?leverageAdjusted*retained:NaN);
 
-  if(!focused){
   const cw=Math.min(430,Math.max(360,(W-m.l-m.r)*.26)),ch=98,cx=Math.max(m.l+10,Math.min(W-m.r-cw-10,ex-cw*.45)),cy=m.t+52;
   svg.appendChild(ns('rect',{x:cx,y:cy,width:cw,height:ch,rx:7,fill:'#071321','fill-opacity':'.97',stroke:BLUE,'stroke-width':'1.4'}));
   const line=(yy,s,c='#c7d7e4',sz='10')=>{const t=txt(cx+12,yy,s,'','start');t.setAttribute('fill',c);t.setAttribute('font-size',sz);t.setAttribute('font-weight','700')};
@@ -140,6 +94,5 @@ function drawRestructure({enabled,data,plottedSeries,x,y,m,W,H,base,svg,ns,txt,s
   line(cy+57,`SCENARIO COMMITMENT · ${Math.round(commitment)}%`);
   line(cy+75,`OPTIONALITY RETAINED · ${Math.round(retained*100)}%`);
   line(cy+92,`OPTIONALITY VALUE REMAINING · ${cash(remaining)}`,'#c7d7e4','9');
-  }
 }
 export {drawRestructure};
