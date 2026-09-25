@@ -229,7 +229,7 @@ function render(){
     svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseExpiryGuide',stroke:'#f21e32','stroke-width':'3','stroke-dasharray':'8 4'}));
     const anchor=ex>W-m.r-150?'end':'start';
     const lx=anchor==='end'?ex-8:ex+8;
-    const leaseTitle=txt(lx,m.t+64,'LEASE EXPIRATION','leaseExpiryText',anchor);
+    const leaseTitle=txt(lx,m.t+64,'CURRENT LEASE EXPIRATION','leaseExpiryText',anchor);
     leaseTitle.setAttribute('fill','#f21e32');
     leaseTitle.setAttribute('font-size','20');
     leaseTitle.setAttribute('font-weight','700');
