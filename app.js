@@ -194,7 +194,7 @@ function render(){
     const tx=x(now),exp=leaseExpiration();
     const insideWindow=+now>=+win.start&&+now<=+win.end;
     const afterWindow=+now>+win.end;
-    svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,class:'guideDash'}));
+    svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,stroke:'#16e6e9','stroke-width':'1.5',opacity:'.78'}));
 
     const cardW=Math.min(310,Math.max(235,pw*.18)),cardH=58;
     const cardX=Math.max(m.l+8,Math.min(W-m.r-cardW-8,tx-cardW/2));
