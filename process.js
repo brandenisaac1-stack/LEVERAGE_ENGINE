@@ -19,10 +19,9 @@ function buildStageModel(data,leaseExpiration){
 }
 
 function restructureLane(index){
-  // Restructure layout is structural, never label-driven.
-  // Records are already sorted chronologically; each record gets the next fixed row.
+  // Structural layout only: chronological restructure record -> next fixed row.
   const base=.43;
-  const step=.075;
+  const step=.115;
   return base+(index*step);
 }
 
@@ -36,14 +35,14 @@ function buildRestructureModel(data){
   const firstStart=phases[0].start;
   // Only the pre-restructure normal stages survive the alternate renewal path.
   const normalBefore=buildStageModel(data,null)
-    .filter(p=>+p.start<+firstStart)
+    .filter(p=>+p.start<+firstStart&&!p.key.toUpperCase().includes('RESTRUCTURE'))
     .map((p,i)=>({...p,lane:.24+(i%2)*.095}));
   const alt=phases.map((p,i)=>({
     key:p.key,start:p.start,exclusiveEnd:p.end,displayEnd:p.end,
     duration:monthDuration(p.start,p.end),
     color:RESTRUCTURE_COLORS[i%RESTRUCTURE_COLORS.length],
     lane:restructureLane(i),
-    description:'Alternate restructure phase',pointOnly:false,restructure:true
+    description:description(p.key),pointOnly:false,restructure:true
   }));
   return [...normalBefore,...alt];
 }
@@ -51,7 +50,12 @@ function buildRestructureModel(data){
 function syncSchedule(el,model){if(!el)return;el.innerHTML='';el.style.gridTemplateColumns=`repeat(${Math.max(1,model.length)},minmax(0,1fr))`;for(const p of model){const box=document.createElement('div');box.className='phasebox dynamicPhase';box.style.setProperty('--stage-color',p.color);box.style.borderTop=`3px solid ${p.color}`;const strong=document.createElement('strong');strong.textContent=p.key;strong.style.setProperty('color',p.color,'important');const tiny=document.createElement('span');tiny.className='tiny';tiny.textContent=p.pointOnly?`${fmtDate(p.start)} · MILESTONE · ${p.description}`:`${fmtDate(p.start)} · ${p.duration} MO · ${p.description}`;box.append(strong,tiny);el.appendChild(box)}}
 
 function shortLabel(stage,width){
-  // Display the ESRI phase label exactly as supplied. Never use label text for layout logic.
+  if(width>=230)return stage;
+  const s=stage.toUpperCase();
+  if(s.includes('EARLY RESTRUCTURE'))return width<110?'EARLY RESTRUCTURE EXPLORATION':'EARLY RESTRUCTURE EXPLORATION';
+  if(s.includes('TERM SHEET')||s.includes('LOI'))return width<110?'RESTRUCTURE TERM SHEET':'RENEWAL TERM SHEET NEGOTIATIONS';
+  if(s.includes('LEASE AMEND'))return 'RESTRUCTURE LEASE AMENDMENT';
+  if(s.includes('SPACE REFRESH'))return width<110?'REFRESH / RECONFIGURATION':'SPACE REFRESH';
   return stage;
 }
 
