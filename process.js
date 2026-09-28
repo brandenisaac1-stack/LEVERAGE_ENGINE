@@ -18,16 +18,12 @@ function buildStageModel(data,leaseExpiration){
   return ordered.map((r,i)=>{const next=ordered[i+1],terminal=next?.date||exp||rows.at(-1).date,end=validDate(terminal),hasSpan=end&&+end>+r.date;return{key:r.stage,start:new Date(+r.date),exclusiveEnd:hasSpan?new Date(+end):new Date(+r.date),displayEnd:hasSpan?dayBefore(end):new Date(+r.date),duration:hasSpan?monthDuration(r.date,end):0,color:PALETTE[i%PALETTE.length],lane:.24+(i%7)*.095,description:description(r.stage),pointOnly:!hasSpan}})
 }
 
-function restructureLane(stage){
-  const s=stage.toUpperCase();
-  // Preserve the normal process vertical architecture: Early Restructure,
-  // Term Sheet/LOI and Lease Negotiations keep their familiar lanes while
-  // Market Evaluation and downstream relocation/buildout stages disappear.
-  if(s.includes('EARLY RESTRUCTURE'))return .43;
-  if(s.includes('TERM SHEET')||s.includes('LOI'))return .525;
-  if(s.includes('LEASE AMEND')||s.includes('LEASE NEGOT'))return .62;
-  if(s.includes('SPACE REFRESH'))return .715;
-  return .62;
+function restructureLane(index){
+  // Restructure layout is structural, never label-driven.
+  // Records are already sorted chronologically; each record gets the next fixed row.
+  const base=.43;
+  const step=.075;
+  return base+(index*step);
 }
 
 function buildRestructureModel(data){
@@ -40,14 +36,14 @@ function buildRestructureModel(data){
   const firstStart=phases[0].start;
   // Only the pre-restructure normal stages survive the alternate renewal path.
   const normalBefore=buildStageModel(data,null)
-    .filter(p=>+p.start<+firstStart&&!p.key.toUpperCase().includes('RESTRUCTURE'))
+    .filter(p=>+p.start<+firstStart)
     .map((p,i)=>({...p,lane:.24+(i%2)*.095}));
   const alt=phases.map((p,i)=>({
     key:p.key,start:p.start,exclusiveEnd:p.end,displayEnd:p.end,
     duration:monthDuration(p.start,p.end),
     color:RESTRUCTURE_COLORS[i%RESTRUCTURE_COLORS.length],
-    lane:restructureLane(p.key),
-    description:description(p.key),pointOnly:false,restructure:true
+    lane:restructureLane(i),
+    description:'Alternate restructure phase',pointOnly:false,restructure:true
   }));
   return [...normalBefore,...alt];
 }
@@ -55,12 +51,7 @@ function buildRestructureModel(data){
 function syncSchedule(el,model){if(!el)return;el.innerHTML='';el.style.gridTemplateColumns=`repeat(${Math.max(1,model.length)},minmax(0,1fr))`;for(const p of model){const box=document.createElement('div');box.className='phasebox dynamicPhase';box.style.setProperty('--stage-color',p.color);box.style.borderTop=`3px solid ${p.color}`;const strong=document.createElement('strong');strong.textContent=p.key;strong.style.setProperty('color',p.color,'important');const tiny=document.createElement('span');tiny.className='tiny';tiny.textContent=p.pointOnly?`${fmtDate(p.start)} · MILESTONE · ${p.description}`:`${fmtDate(p.start)} · ${p.duration} MO · ${p.description}`;box.append(strong,tiny);el.appendChild(box)}}
 
 function shortLabel(stage,width){
-  if(width>=230)return stage;
-  const s=stage.toUpperCase();
-  if(s.includes('EARLY RESTRUCTURE'))return width<110?'EARLY RESTRUCTURE EXPLORATION':'EARLY RESTRUCTURE EXPLORATION';
-  if(s.includes('TERM SHEET')||s.includes('LOI'))return width<110?'RESTRUCTURE TERM SHEET':'RENEWAL TERM SHEET NEGOTIATIONS';
-  if(s.includes('LEASE AMEND'))return 'RESTRUCTURE LEASE AMENDMENT';
-  if(s.includes('SPACE REFRESH'))return width<110?'REFRESH / RECONFIGURATION':'SPACE REFRESH';
+  // Display the ESRI phase label exactly as supplied. Never use label text for layout logic.
   return stage;
 }
 
