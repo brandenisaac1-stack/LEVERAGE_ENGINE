@@ -53,7 +53,7 @@ function shortLabel(stage,width){
   if(width>=230)return stage;
   const s=stage.toUpperCase();
   if(s.includes('EARLY RESTRUCTURE'))return width<110?'EARLY RESTRUCTURE EXPLORATION':'EARLY RESTRUCTURE EXPLORATION';
-  if(s.includes('TERM SHEET')||s.includes('LOI'))return width<110?'RESTRUCTURE TERM SHEET':'RENEWAL TERM SHEET NEGOTIATIONS';
+  if(s.includes('TERM SHEET')||s.includes('LOI'))return width<110?'RESTRUCTURE TERM SHEET':'RESTRUCTURE TERM SHEET';
   if(s.includes('LEASE AMEND'))return 'RESTRUCTURE LEASE AMENDMENT';
   if(s.includes('SPACE REFRESH'))return width<110?'REFRESH / RECONFIGURATION':'SPACE REFRESH';
   return stage;
