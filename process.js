@@ -75,7 +75,8 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl,restruc
     const mid=(a+b)/2,titleText=p.restructure?shortLabel(p.key,width):p.key;
     const title=txt(mid,yy-14,titleText,'proc','middle');title.setAttribute('fill',p.color);title.style.setProperty('font-size','16px','important');title.style.setProperty('font-weight','700','important');title.style.setProperty('paint-order','stroke','important');title.style.setProperty('stroke','#06101f','important');title.style.setProperty('stroke-width','2px','important');
     const dateText=`${fmtDate(p.start)} · ${p.duration} MO`;
-    const sub=txt(mid,yy+21,dateText,'axis','middle');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','16px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#06101f','important');sub.style.setProperty('stroke-width','2px','important');
+const dateX=a+4;
+const sub=txt(dateX,yy+21,dateText,'axis','start');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','16px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#06101f','important');sub.style.setProperty('stroke-width','2px','important');
   })
 }
 export {drawProcess,buildStageModel,buildRestructureModel};
