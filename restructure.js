@@ -140,7 +140,7 @@ function ensurePanel(defaultPct,rerender){
 
     Object.assign(title.style,{
       color:SAVILLS_YELLOW,
-      fontSize:'12px',
+      fontSize:'15px',
       fontWeight:'700',
       marginBottom:'7px',
       letterSpacing:'.15px'
@@ -153,7 +153,7 @@ function ensurePanel(defaultPct,rerender){
     Object.assign(value.style,{
       color:RESTRUCTURE_TEXT,
       textAlign:'center',
-      fontSize:'13px',
+      fontSize:'16px',
       fontWeight:'700'
     });
 
@@ -183,7 +183,7 @@ function ensurePanel(defaultPct,rerender){
 
     Object.assign(reset.style,{
       width:'100%',
-      fontSize:'10px',
+      fontSize:'12px',
       fontWeight:'600',
       marginTop:'6px'
     });
@@ -348,7 +348,7 @@ function focusedMilestones({
   );
 
   master.setAttribute('fill',RESTRUCTURE_TEXT);
-  master.setAttribute('font-size','14');
+  master.setAttribute('font-size','18');
   master.setAttribute('font-weight','700');
 
   const dateLine=txt(
@@ -360,7 +360,7 @@ function focusedMilestones({
   );
 
   dateLine.setAttribute('fill',SAVILLS_STEEL);
-  dateLine.setAttribute('font-size','10');
+  dateLine.setAttribute('font-size','14');
   dateLine.setAttribute('font-weight','600');
 
   if(!dates.length||!phases.length)return;
@@ -420,7 +420,7 @@ function focusedMilestones({
     title.setAttribute('fill',c);
     title.setAttribute(
       'font-size',
-      w<210?'9':w<320?'10':'11'
+      w<210?'9':w<320?'14':'16'
     );
     title.setAttribute('font-weight','700');
 
@@ -433,7 +433,7 @@ function focusedMilestones({
     );
 
     datesText.setAttribute('fill',SAVILLS_STEEL);
-    datesText.setAttribute('font-size','9');
+    datesText.setAttribute('font-size','12');
     datesText.setAttribute('font-weight','600');
 
     svg.appendChild(
@@ -671,7 +671,7 @@ const cy=base-ch-18;
       yy,
       s,
       c=SAVILLS_WHITE,
-      sz='11'
+      sz='14'
     )=>{
       const t=txt(
         cx+12,
@@ -692,7 +692,7 @@ const cy=base-ch-18;
       cy+19,
       `EARLY RESTRUCTURE · ${label(ctl.progress)}`,
       SAVILLS_YELLOW,
-      '12'
+      '15'
     );
 
     line(
@@ -720,7 +720,7 @@ const cy=base-ch-18;
       cy+92,
       `OPTIONALITY VALUE REMAINING · ${cash(remaining)}`,
       SAVILLS_WHITE,
-      '10'
+      '13'
     )
   }
 }
