@@ -27,7 +27,7 @@
   --panel:var(--savills-navy-deep);
   --panel-soft:var(--savills-navy-soft);
 
-  --grid:rgba(215,218,222,.18);
+  --grid:rgba(215,218,222,.10);
   --text:var(--white);
   --muted:var(--savills-steel-50);
   --border:rgba(189,194,199,.28);
@@ -168,8 +168,8 @@ button:hover{
 .wrap{
   position:relative;
   min-height:0;
-  border:1px solid rgba(189,194,199,.20);
-  border-radius:7px;
+  border:1px solid rgba(189,194,199,.14);
+  border-radius:6px;
   background:var(--savills-navy);
   overflow:hidden;
   box-shadow:none;
@@ -218,7 +218,7 @@ button:hover{
     94% 100%,
     100% 82%;
 
-  opacity:.85;
+  opacity:.48;
 }
 
 svg{
@@ -550,7 +550,7 @@ svg{
 
 .grid{
   stroke:var(--grid);
-  stroke-width:.8;
+  stroke-width:.6;
 }
 
 .guide{
