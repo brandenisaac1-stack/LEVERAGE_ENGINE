@@ -21,16 +21,16 @@ function ensureLeverageScenarioPanel(){
   panel=document.createElement('div');
   panel.id=SCENARIO_PANEL_ID;
   Object.assign(panel.style,{
-    position:'absolute',left:'62px',right:'auto',top:'8px',zIndex:'30',
-    width:'225px',padding:'6px 8px',
-    background:'rgba(7,19,33,.97)',border:'1px solid #31506b',
-    borderRadius:'7px',boxShadow:'0 8px 24px rgba(0,0,0,.24)',
-    fontFamily:'"Courier New",monospace',color:'#c7d7e4'
-  });
+  position:'absolute',left:'62px',right:'auto',top:'8px',zIndex:'30',
+  width:'225px',padding:'8px 10px',
+  background:'rgba(27,29,44,.97)',border:'1px solid rgba(189,194,199,.38)',
+  borderRadius:'7px',boxShadow:'0 8px 24px rgba(0,0,0,.22)',
+  fontFamily:'Gotham,Arial,sans-serif',color:'#FFFFFF'
+});
 
   const title=document.createElement('div');
   title.textContent='LEVERAGE SCENARIO';
-  Object.assign(title.style,{fontSize:'11px',fontWeight:'700',color:'#8fdde3',marginBottom:'8px'});
+  Object.assign(title.style,{fontSize:'12px',fontWeight:'700',color:'#FFDF00',marginBottom:'9px'});
   panel.appendChild(title);
 
   const makeSlider=(key,label,color)=>{
@@ -56,8 +56,8 @@ function ensureLeverageScenarioPanel(){
     panel.appendChild(wrapRow);
   };
 
-  makeSlider('tenant','TENANT LEVERAGE','#69c9c6');
-  makeSlider('landlord','LANDLORD LEVERAGE','#f21e32');
+  makeSlider('tenant','TENANT LEVERAGE','#238291');
+makeSlider('landlord','LANDLORD LEVERAGE','#CE181E');
 
   const reset=document.createElement('button');
   reset.textContent='RESET TO BASELINE';
@@ -76,7 +76,7 @@ function ensureLeverageScenarioPanel(){
 
   const note=document.createElement('div');
   note.textContent='0 = MODEL BASELINE';
-  Object.assign(note.style,{fontSize:'8px',color:'#7890a2',textAlign:'center',marginTop:'5px'});
+  Object.assign(note.style,{fontSize:'9px',fontWeight:'600',color:'#BDC2C7',textAlign:'center',marginTop:'6px'});
   panel.appendChild(note);
 
   wrap.appendChild(panel);
@@ -178,10 +178,10 @@ function render(){
     if(sx2>sx1)svg.appendChild(ns('rect',{x:sx1,y:m.t,width:sx2-sx1,height:ph,class:'windowShade'}));
   }
   const tp=P.map(d=>[x(d.date),y(d.plotTenant)]),lp=P.map(d=>[x(d.date),y(d.plotLandlord)]),tl=curvePath(tp),ll=curvePath(lp);
-  svg.appendChild(ns('path',{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:'#b50019','fill-opacity':'.62'}));
-  svg.appendChild(ns('path',{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:'#4b8584','fill-opacity':'.54'}));
-  svg.appendChild(ns('path',{d:ll,fill:'none',stroke:'#f21e32','stroke-width':'2.35'}));
-  svg.appendChild(ns('path',{d:tl,fill:'none',stroke:'#69c9c6','stroke-width':'2.35'}));
+  svg.appendChild(ns('path',{d:ll+` L ${lp.at(-1)[0]} ${base} L ${lp[0][0]} ${base} Z`,fill:'#CE181E','fill-opacity':'.28'}));
+svg.appendChild(ns('path',{d:tl+` L ${tp.at(-1)[0]} ${base} L ${tp[0][0]} ${base} Z`,fill:'#238291','fill-opacity':'.32'}));
+svg.appendChild(ns('path',{d:ll,fill:'none',stroke:'#CE181E','stroke-width':'2.5'}));
+svg.appendChild(ns('path',{d:tl,fill:'none',stroke:'#238291','stroke-width':'2.5'}));
 
   drawRestructure({enabled:restructureMode,data:DATA,plottedSeries:P,scenarioEconomics,x,y,m,W,H,base,svg,ns,txt,selected});
 
@@ -194,15 +194,15 @@ function render(){
     const tx=x(now),exp=leaseExpiration();
     const insideWindow=+now>=+win.start&&+now<=+win.end;
     const afterWindow=+now>+win.end;
-    svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,stroke:'#16e6e9','stroke-width':'1.5',opacity:'.78'}));
+    svg.appendChild(ns('line',{x1:tx,y1:m.t-5,x2:tx,y2:base,stroke:'#FFDF00','stroke-width':'2',opacity:'.90'}));
 
     const cardW=Math.min(310,Math.max(235,pw*.18)),cardH=58;
     const cardX=Math.max(m.l+8,Math.min(W-m.r-cardW-8,tx-cardW/2));
     const cardY=base-cardH-10;
     svg.appendChild(ns('rect',{
       x:cardX,y:cardY,width:cardW,height:cardH,rx:6,
-      fill:'#071321','fill-opacity':'.94',
-      stroke:'#16e6e9','stroke-width':'1.2','stroke-opacity':'.72'
+      fill:'#25273A','fill-opacity':'.97',
+stroke:'#FFDF00','stroke-width':'1.4','stroke-opacity':'.88'
     }));
     txt(cardX+10,cardY+16,`TODAY · ${fmt(now)}`,'t1');
     txt(cardX+10,cardY+32,`${months(now,exp)} months to lease expiration`,'t2');
@@ -226,15 +226,15 @@ function render(){
   const exp=leaseExpiration();
   if(+exp>=x0&&+exp<=x1){
     const ex=x(exp);
-    svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseExpiryGuide',stroke:'#f21e32','stroke-width':'3','stroke-dasharray':'8 4'}));
+    svg.appendChild(ns('line',{x1:ex,y1:m.t-8,x2:ex,y2:base,class:'leaseExpiryGuide',stroke:'#CE181E','stroke-width':'2.6','stroke-dasharray':'8 4'}));
     const anchor=ex>W-m.r-150?'end':'start';
     const lx=anchor==='end'?ex-8:ex+8;
     const leaseTitle=txt(lx,m.t+64,'CURRENT LEASE EXPIRATION','leaseExpiryText',anchor);
-    leaseTitle.setAttribute('fill','#f21e32');
+    leaseTitle.setAttribute('fill','#CE181E');
     leaseTitle.setAttribute('font-size','20');
     leaseTitle.setAttribute('font-weight','700');
     const leaseDate=txt(lx,m.t+88,fmtUTC(exp),'leaseExpiryDate',anchor);
-    leaseDate.setAttribute('fill','#f21e32');
+    leaseDate.setAttribute('fill','#CE181E');
     leaseDate.setAttribute('font-size','20');
     leaseDate.setAttribute('font-weight','700');
   }
@@ -245,8 +245,8 @@ function render(){
   if(selected>=0&&DATA[selected]&&+DATA[selected].date>=x0&&+DATA[selected].date<=x1){
     const d=DATA[selected],v=curveValueAt(d.date,DATA,win),sx=x(d.date),sy=y(v.tenant),ly=y(v.landlord);
     svg.appendChild(ns('line',{x1:sx,y1:m.t+52,x2:sx,y2:base,class:'sel'}));
-    svg.appendChild(ns('circle',{cx:sx,cy:sy,r:5,fill:'#16e6e9',class:'dot'}));
-    svg.appendChild(ns('circle',{cx:sx,cy:ly,r:5,fill:'#f21e32',class:'dot'}));
+    svg.appendChild(ns('circle',{cx:sx,cy:sy,r:5,fill:'#238291',class:'dot'}));
+svg.appendChild(ns('circle',{cx:sx,cy:ly,r:5,fill:'#CE181E',class:'dot'}));
     showPopup({d,sx,sy:Math.min(sy,ly),W,H,m,popup,annotationsEnabled:$('anno').checked,esc,money});
   }else popup.hidden=true;
 }

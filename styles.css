@@ -2,6 +2,7 @@
   --savills-navy:#25273A;
   --savills-navy-deep:#1B1D2C;
   --savills-navy-soft:#303244;
+  --savills-navy-cube:#34364A;
 
   --savills-yellow:#FFDF00;
   --savills-teal:#238291;
@@ -26,7 +27,7 @@
   --panel:var(--savills-navy-deep);
   --panel-soft:var(--savills-navy-soft);
 
-  --grid:rgba(189,194,199,.24);
+  --grid:rgba(215,218,222,.18);
   --text:var(--white);
   --muted:var(--savills-steel-50);
   --border:rgba(189,194,199,.28);
@@ -35,10 +36,6 @@
   --teal:var(--savills-teal);
   --red:var(--savills-red);
 
-  /*
-    Legacy aliases retained so existing markup / JS classes
-    continue to render without architectural changes.
-  */
   --cyan:var(--savills-yellow);
   --cyan2:var(--savills-teal);
   --amber:var(--savills-yellow);
@@ -65,7 +62,7 @@ body{
   grid-template-rows:auto 1fr auto auto;
   gap:8px;
   padding:10px;
-  background:var(--bg);
+  background:var(--savills-navy);
 }
 
 
@@ -86,14 +83,14 @@ body{
   color:var(--savills-yellow);
   font-size:15px;
   font-weight:700;
-  letter-spacing:.35px;
+  letter-spacing:.3px;
 }
 
 .toolbar label,
 .status{
   color:var(--savills-steel-30);
   font-size:11px;
-  font-weight:500;
+  font-weight:600;
 }
 
 select,
@@ -105,12 +102,12 @@ button{
   padding:7px 9px;
   font-family:Gotham,Arial,sans-serif;
   font-size:11px;
-  font-weight:500;
+  font-weight:600;
 }
 
 select:focus,
 button:focus{
-  outline:2px solid rgba(255,223,0,.45);
+  outline:2px solid rgba(255,223,0,.42);
   outline-offset:1px;
 }
 
@@ -165,7 +162,7 @@ button:hover{
 
 
 /* =========================================================
-   MAIN CHART CONTAINER
+   MAIN CHART / SUBTLE SAVILLS CUBED DEPTH
    ========================================================= */
 
 .wrap{
@@ -173,12 +170,60 @@ button:hover{
   min-height:0;
   border:1px solid var(--border);
   border-radius:7px;
-  background:var(--panel);
+  background:var(--savills-navy-deep);
   overflow:hidden;
-  box-shadow:0 4px 18px rgba(0,0,0,.14);
+  box-shadow:0 5px 20px rgba(0,0,0,.16);
+  isolation:isolate;
+}
+
+/*
+  Restrained geometric / Cubed-style brand depth.
+  Intentionally low contrast so it reads as branding,
+  never as chart information.
+*/
+.wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+
+  background:
+    linear-gradient(
+      30deg,
+      transparent 0 74%,
+      rgba(255,255,255,.018) 74% 75%,
+      transparent 75% 100%
+    ),
+    linear-gradient(
+      150deg,
+      transparent 0 79%,
+      rgba(255,255,255,.014) 79% 80%,
+      transparent 80% 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0 86%,
+      rgba(255,223,0,.012) 86% 87%,
+      transparent 87% 100%
+    );
+
+  background-size:
+    320px 220px,
+    380px 260px,
+    460px 300px;
+
+  background-position:
+    100% 100%,
+    94% 100%,
+    100% 82%;
+
+  opacity:.85;
 }
 
 svg{
+  position:relative;
+  z-index:1;
   display:block;
   width:100%;
   height:100%;
@@ -192,18 +237,18 @@ svg{
 
 .legend{
   position:absolute;
+  z-index:4;
   top:11px;
   left:50%;
   transform:translateX(-50%);
   display:flex;
-  gap:26px;
+  gap:28px;
   color:var(--savills-steel-20);
   font-family:Barlow,Gotham,Arial,sans-serif;
   font-size:12px;
   font-weight:600;
   letter-spacing:.1px;
   pointer-events:none;
-  z-index:4;
 }
 
 .swatch{
@@ -225,32 +270,28 @@ svg{
   z-index:5;
   pointer-events:none;
   max-width:390px;
-  padding:11px 13px;
-
-  background:rgba(37,39,58,.97);
+  padding:12px 14px;
+  background:rgba(37,39,58,.98);
   border:1px solid rgba(189,194,199,.42);
   border-radius:6px;
-
   color:var(--white);
-
   font-family:Barlow,Gotham,Arial,sans-serif;
   font-size:12px;
-  line-height:1.4;
-
+  line-height:1.42;
   box-shadow:0 12px 28px rgba(0,0,0,.28);
 }
 
 .annotation .title{
   color:var(--savills-yellow);
   font-family:Gotham,Arial,sans-serif;
-  font-size:13px;
+  font-size:14px;
   font-weight:700;
 }
 
 .annotation .phase{
   color:var(--white);
   margin:4px 0 7px;
-  font-weight:500;
+  font-weight:600;
 }
 
 .annotation .metric{
@@ -274,7 +315,7 @@ svg{
 
 
 /* =========================================================
-   SIGN-IN / CENTER STATE
+   SIGN-IN / LOADING STATE
    ========================================================= */
 
 .center{
@@ -285,12 +326,39 @@ svg{
   justify-content:center;
   flex-direction:column;
   gap:12px;
-
-  background:rgba(37,39,58,.98);
-
+  background:rgba(37,39,58,.985);
   z-index:20;
   text-align:center;
   padding:30px;
+}
+
+.center::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+
+  background:
+    linear-gradient(
+      30deg,
+      transparent 0 74%,
+      rgba(255,255,255,.018) 74% 75%,
+      transparent 75%
+    ),
+    linear-gradient(
+      150deg,
+      transparent 0 80%,
+      rgba(255,223,0,.014) 80% 81%,
+      transparent 81%
+    );
+
+  background-size:420px 290px,520px 350px;
+  background-position:100% 100%,100% 100%;
+}
+
+.center > *{
+  position:relative;
+  z-index:1;
 }
 
 .center[hidden]{
@@ -303,6 +371,7 @@ svg{
   font-family:Gotham,Arial,sans-serif;
   font-size:22px;
   font-weight:700;
+  letter-spacing:.15px;
 }
 
 .center p{
@@ -310,6 +379,7 @@ svg{
   max-width:620px;
   color:var(--savills-steel-20);
   font-size:13px;
+  font-weight:500;
   line-height:1.5;
 }
 
@@ -321,12 +391,9 @@ svg{
 .schedule{
   border:1px solid var(--border);
   border-radius:6px;
-
   background:var(--savills-navy-deep);
-
   display:grid;
   grid-template-columns:none;
-
   min-height:78px;
   overflow:hidden;
 }
@@ -334,11 +401,8 @@ svg{
 .phasebox{
   padding:10px 12px;
   text-align:center;
-
   border-right:1px solid rgba(189,194,199,.20);
-
   color:var(--white);
-
   font-family:Barlow,Gotham,Arial,sans-serif;
   font-size:11px;
   line-height:1.3;
@@ -351,16 +415,16 @@ svg{
 .phasebox strong{
   display:block;
   margin-bottom:6px;
-
   font-family:Gotham,Arial,sans-serif;
   font-size:13px;
   font-weight:700;
-  letter-spacing:.15px;
+  letter-spacing:.1px;
 }
 
 .tiny{
   color:var(--savills-steel-30);
   font-size:10px;
+  font-weight:500;
   line-height:1.35;
 }
 
@@ -368,10 +432,9 @@ svg{
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb,var(--stage-color) 15%,transparent),
-      rgba(27,29,44,.98)
+      color-mix(in srgb,var(--stage-color) 14%,transparent),
+      rgba(27,29,44,.985)
     );
-
   box-shadow:inset 0 3px 0 var(--stage-color);
 }
 
@@ -379,20 +442,17 @@ svg{
   color:var(--stage-color);
 }
 
-
-/* Legacy phase classes retained */
-
 .phasebox.loi{
-  background:rgba(35,130,145,.12);
+  background:rgba(35,130,145,.10);
   box-shadow:inset 0 3px 0 var(--savills-teal);
 }
 
 .phasebox.lease{
-  background:rgba(9,124,232,.08);
+  background:rgba(9,124,232,.07);
 }
 
 .phasebox.post{
-  background:rgba(255,223,0,.07);
+  background:rgba(255,223,0,.06);
 }
 
 
@@ -401,31 +461,26 @@ svg{
    ========================================================= */
 
 .impact{
+  position:relative;
   border:1px solid rgba(189,194,199,.30);
   border-radius:7px;
-
   background:var(--savills-navy-deep);
-
   padding:10px 16px;
-
   text-align:center;
-
   min-height:82px;
-
   display:flex;
   flex-direction:column;
   justify-content:center;
-
   box-shadow:inset 0 3px 0 var(--savills-yellow);
+  overflow:hidden;
 }
 
 .impact-title{
   color:var(--savills-yellow);
-
   font-family:Gotham,Arial,sans-serif;
   font-size:14px;
   font-weight:700;
-  letter-spacing:.35px;
+  letter-spacing:.25px;
 }
 
 .impact-delta{
@@ -449,11 +504,9 @@ svg{
 
 .impact-npv{
   color:var(--savills-steel-20);
-
   font-family:Barlow,Gotham,Arial,sans-serif;
   font-size:13px;
-  font-weight:500;
-
+  font-weight:600;
   word-spacing:3px;
 }
 
@@ -464,7 +517,6 @@ svg{
 
 .axis{
   fill:var(--savills-steel-30);
-
   font-family:Barlow,Gotham,Arial,sans-serif;
   font-size:12px;
   font-weight:600;
@@ -472,14 +524,13 @@ svg{
 
 .proc{
   font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:11px;
+  font-size:12px;
   font-weight:700;
-  letter-spacing:.1px;
+  letter-spacing:.05px;
 }
 
 .t1{
   fill:var(--savills-yellow);
-
   font-family:Gotham,Arial,sans-serif;
   font-size:13px;
   font-weight:700;
@@ -487,15 +538,14 @@ svg{
 
 .t2{
   fill:var(--savills-steel-20);
-
   font-family:Barlow,Gotham,Arial,sans-serif;
   font-size:11px;
-  font-weight:500;
+  font-weight:600;
 }
 
 
 /* =========================================================
-   CHART STRUCTURE / GUIDES
+   CHART STRUCTURE
    ========================================================= */
 
 .grid{
@@ -523,7 +573,7 @@ svg{
 
 .windowShade{
   fill:var(--savills-teal);
-  fill-opacity:.07;
+  fill-opacity:.065;
 }
 
 .sel{
@@ -540,7 +590,7 @@ svg{
 
 
 /* =========================================================
-   LEASE / NORTH STAR SUPPORT CLASSES
+   LEASE EXPIRATION SUPPORT CLASSES
    ========================================================= */
 
 .leaseNorthStar{
@@ -552,23 +602,31 @@ svg{
 .leaseNorthStarText{
   fill:var(--savills-red);
   font-family:Gotham,Arial,sans-serif;
-  font-size:12px;
+  font-size:13px;
   font-weight:700;
 }
 
 .leaseNorthStarDate{
-  fill:var(--savills-steel-20);
+  fill:var(--savills-red);
   font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:11px;
+  font-size:13px;
   font-weight:700;
 }
 
 
 /* =========================================================
-   SAVILLS LOGO PLACEHOLDER
-   index.html element comes in final header pass.
-   This class is safe to exist before the element does.
+   SAVILLS LOGO
+   Element gets added during index.html pass.
    ========================================================= */
+
+.savills-logo-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:6px;
+  padding-left:10px;
+  border-left:1px solid rgba(189,194,199,.22);
+}
 
 .savills-logo{
   display:block;
@@ -578,16 +636,9 @@ svg{
   flex:0 0 auto;
 }
 
-.savills-logo-wrap{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin-left:4px;
-}
-
 
 /* =========================================================
-   SMALLER SCREEN SAFETY
+   RESPONSIVE SAFETY
    ========================================================= */
 
 @media (max-width:1200px){
@@ -612,6 +663,10 @@ svg{
   }
 
   .axis{
+    font-size:11px;
+  }
+
+  .proc{
     font-size:11px;
   }
 
