@@ -1,29 +1,625 @@
-:root{--bg:#06101f;--panel:#081525;--grid:#253247;--text:#d3dde5;--muted:#7890a2;--cyan:#16e6e9;--cyan2:#69c9c6;--red:#f21e32;--amber:#d5a536;--border:#16263a}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:"Courier New",monospace;overflow:hidden}#app{height:100vh;display:grid;grid-template-rows:auto 1fr auto auto;gap:7px;padding:9px}.toolbar{display:flex;align-items:center;gap:9px;min-height:36px}.brand{font-weight:700;color:var(--cyan);margin-right:auto;letter-spacing:.4px}.toolbar label,.status{font-size:10px;color:var(--muted)}select,button{background:#0b1a2c;color:var(--text);border:1px solid #29405a;border-radius:4px;padding:6px 8px;font:inherit;font-size:10px}button{cursor:pointer}.primary{border-color:#1e8b93;color:#d9ffff}.toggle{display:flex;align-items:center;gap:4px}.status{padding:5px 8px;border:1px solid #21364b;border-radius:4px}.ok{color:#8ed3bd}.warn{color:#efc76d}.err{color:#ff9ca7}.wrap{position:relative;min-height:0;border:1px solid var(--border);border-radius:7px;background:var(--panel);overflow:hidden}svg{display:block;width:100%;height:100%}.legend{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:22px;font-size:10px;color:#9cafbd;pointer-events:none}.swatch{display:inline-block;width:9px;height:9px;margin-right:5px}.annotation{position:absolute;z-index:5;pointer-events:none;background:rgba(5,15,28,.96);border:1px solid #31506b;border-radius:6px;padding:9px 11px;max-width:390px;font-size:10px;line-height:1.35;box-shadow:0 12px 28px rgba(0,0,0,.28)}.annotation .title{color:var(--cyan);font-weight:700}.annotation .phase{color:#e6eef4;margin:3px 0 5px}.annotation .metric{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #1b2c3f;padding-top:4px;margin-top:4px}.annotation .read{margin-top:7px;color:#a9bac7}.center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(6,16,31,.97);z-index:20;text-align:center;padding:30px}.center[hidden]{display:none}.center h2{margin:0;color:var(--cyan);font-size:18px}.center p{margin:0;max-width:620px;color:#98aabc;font-size:11px;line-height:1.5}.schedule{border:1px solid var(--border);border-radius:6px;background:#071321;display:grid;grid-template-columns:.75fr 1.65fr 1.35fr 1.0fr 1.85fr;min-height:58px;overflow:hidden}.phasebox{padding:7px;text-align:center;border-right:1px solid #203247;font-size:9px}.phasebox:last-child{border-right:0}.phasebox strong{display:block;font-size:10px;margin-bottom:4px}.phasebox.loi{background:rgba(22,230,233,.10);box-shadow:inset 0 2px 0 var(--cyan)}.phasebox.lease{background:rgba(70,150,160,.08)}.phasebox.post{background:rgba(213,165,54,.07)}.tiny{color:var(--muted);font-size:8px}.impact{border:1px solid #39201a;border-radius:7px;background:#21100b;padding:8px 16px;text-align:center;min-height:76px;display:flex;flex-direction:column;justify-content:center}.impact-title{color:#8fdde3;font-size:13px;letter-spacing:.5px}.impact-delta{font-size:16px;margin:5px 0}.impact-delta.gain{color:var(--cyan)}.impact-delta.loss{color:#ef6c63}.impact-delta.neutral{color:#b8c4cd}.impact-npv{font-size:12px;color:#d7d8da;word-spacing:3px}.axis{fill:#7992a4;font-size:9px}.grid{stroke:var(--grid);stroke-width:1}.guide{stroke:var(--cyan);stroke-width:2}.guideDash{stroke:var(--cyan);stroke-width:1.5;stroke-dasharray:6 4}.t1{fill:var(--cyan);font-size:10px;font-weight:700}.t2{fill:#c3d0d9;font-size:9px}.sel{stroke:#eaf4fa;stroke-width:1;stroke-dasharray:3 4;opacity:.7}.dot{stroke:#fff;stroke-width:2}.proc{font-size:8px;font-weight:700}.windowArrow{stroke:var(--cyan);stroke-width:1.5;fill:none}.windowShade{fill:#16e6e9;fill-opacity:.045}
+:root{
+  --savills-navy:#25273A;
+  --savills-navy-deep:#1B1D2C;
+  --savills-navy-soft:#303244;
 
-/* --- VISUAL ENHANCEMENT PASS: presentation only --- */
-.phasebox{padding:10px 12px;font-size:11px;line-height:1.3}
-.phasebox strong{font-size:13px;letter-spacing:.25px;margin-bottom:6px}
-.phasebox .tiny{font-size:10px;line-height:1.3}
-.phasebox:nth-child(1){background:linear-gradient(180deg,rgba(22,230,233,.18),rgba(22,230,233,.035));box-shadow:inset 0 3px 0 #16e6e9}
-.phasebox:nth-child(1) strong{color:#16e6e9}
-.phasebox:nth-child(2){background:linear-gradient(180deg,rgba(62,145,215,.18),rgba(62,145,215,.035));box-shadow:inset 0 3px 0 #3e91d7}
-.phasebox:nth-child(2) strong{color:#79baf0}
-.phasebox:nth-child(3){background:linear-gradient(180deg,rgba(22,230,233,.22),rgba(22,230,233,.045));box-shadow:inset 0 3px 0 #16e6e9}
-.phasebox:nth-child(3) strong{color:#16e6e9}
-.phasebox:nth-child(4){background:linear-gradient(180deg,rgba(73,190,133,.18),rgba(73,190,133,.035));box-shadow:inset 0 3px 0 #49be85}
-.phasebox:nth-child(4) strong{color:#78d6a6}
-.phasebox:nth-child(5){background:linear-gradient(180deg,rgba(213,165,54,.20),rgba(213,165,54,.04));box-shadow:inset 0 3px 0 #d5a536}
-.phasebox:nth-child(5) strong{color:#efc65e}
-.schedule{min-height:78px}
-.proc{font-size:11px;font-weight:700;letter-spacing:.15px}
-.axis{font-size:12px;font-weight:700}
-.t1{font-size:12px}.t2{font-size:10px}
-.guideDash{stroke-width:2;stroke-dasharray:7 5}
+  --savills-yellow:#FFDF00;
+  --savills-teal:#238291;
+  --savills-red:#CE181E;
 
-/* Live PROCESS_STAGE schedule + lease-expiration north star */
-.schedule{grid-template-columns:none}
-.dynamicPhase{background:linear-gradient(180deg,color-mix(in srgb,var(--stage-color) 18%,transparent),rgba(7,19,33,.96));box-shadow:inset 0 3px 0 var(--stage-color)}
-.dynamicPhase strong{color:var(--stage-color)}
-.leaseNorthStar{stroke:#efc65e;stroke-width:2.2;stroke-dasharray:4 3}
-.leaseNorthStarText{fill:#efc65e;font-size:11px;font-weight:700}
-.leaseNorthStarDate{fill:#d9c27d;font-size:10px;font-weight:700}
+  --savills-steel:#79828C;
+  --savills-steel-50:#BDC2C7;
+  --savills-steel-30:#D7DADE;
+  --savills-steel-20:#E3E6E8;
+  --savills-steel-10:#F2F3F5;
+
+  --savills-blue:#097CE8;
+  --savills-green:#3AA95C;
+  --savills-orange:#EF6B00;
+  --savills-pink:#D3397F;
+  --savills-purple:#83007E;
+
+  --white:#FFFFFF;
+  --black:#000000;
+
+  --bg:var(--savills-navy);
+  --panel:var(--savills-navy-deep);
+  --panel-soft:var(--savills-navy-soft);
+
+  --grid:rgba(189,194,199,.24);
+  --text:var(--white);
+  --muted:var(--savills-steel-50);
+  --border:rgba(189,194,199,.28);
+
+  --yellow:var(--savills-yellow);
+  --teal:var(--savills-teal);
+  --red:var(--savills-red);
+
+  /*
+    Legacy aliases retained so existing markup / JS classes
+    continue to render without architectural changes.
+  */
+  --cyan:var(--savills-yellow);
+  --cyan2:var(--savills-teal);
+  --amber:var(--savills-yellow);
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  width:100%;
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Gotham,Arial,sans-serif;
+  overflow:hidden;
+}
+
+#app{
+  height:100vh;
+  display:grid;
+  grid-template-rows:auto 1fr auto auto;
+  gap:8px;
+  padding:10px;
+  background:var(--bg);
+}
+
+
+/* =========================================================
+   TOOLBAR / HEADER
+   ========================================================= */
+
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:42px;
+  padding:0 2px;
+}
+
+.brand{
+  margin-right:auto;
+  color:var(--savills-yellow);
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:.35px;
+}
+
+.toolbar label,
+.status{
+  color:var(--savills-steel-30);
+  font-size:11px;
+  font-weight:500;
+}
+
+select,
+button{
+  background:var(--savills-navy-deep);
+  color:var(--white);
+  border:1px solid rgba(189,194,199,.38);
+  border-radius:4px;
+  padding:7px 9px;
+  font-family:Gotham,Arial,sans-serif;
+  font-size:11px;
+  font-weight:500;
+}
+
+select:focus,
+button:focus{
+  outline:2px solid rgba(255,223,0,.45);
+  outline-offset:1px;
+}
+
+button{
+  cursor:pointer;
+}
+
+button:hover{
+  border-color:var(--savills-yellow);
+}
+
+.primary{
+  background:var(--savills-yellow);
+  border-color:var(--savills-yellow);
+  color:var(--black);
+  font-weight:700;
+}
+
+.primary:hover{
+  background:var(--savills-yellow);
+  border-color:var(--white);
+  color:var(--black);
+}
+
+.toggle{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.toggle input{
+  accent-color:var(--savills-yellow);
+}
+
+.status{
+  padding:6px 9px;
+  border:1px solid rgba(189,194,199,.30);
+  border-radius:4px;
+}
+
+.ok{
+  color:#9DD4AD;
+}
+
+.warn{
+  color:var(--savills-yellow);
+}
+
+.err{
+  color:#F3B584;
+}
+
+
+/* =========================================================
+   MAIN CHART CONTAINER
+   ========================================================= */
+
+.wrap{
+  position:relative;
+  min-height:0;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:var(--panel);
+  overflow:hidden;
+  box-shadow:0 4px 18px rgba(0,0,0,.14);
+}
+
+svg{
+  display:block;
+  width:100%;
+  height:100%;
+  font-family:Barlow,Gotham,Arial,sans-serif;
+}
+
+
+/* =========================================================
+   LEGEND
+   ========================================================= */
+
+.legend{
+  position:absolute;
+  top:11px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:26px;
+  color:var(--savills-steel-20);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.1px;
+  pointer-events:none;
+  z-index:4;
+}
+
+.swatch{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  margin-right:6px;
+  border-radius:1px;
+  vertical-align:-1px;
+}
+
+
+/* =========================================================
+   ANNOTATION POPUP
+   ========================================================= */
+
+.annotation{
+  position:absolute;
+  z-index:5;
+  pointer-events:none;
+  max-width:390px;
+  padding:11px 13px;
+
+  background:rgba(37,39,58,.97);
+  border:1px solid rgba(189,194,199,.42);
+  border-radius:6px;
+
+  color:var(--white);
+
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:12px;
+  line-height:1.4;
+
+  box-shadow:0 12px 28px rgba(0,0,0,.28);
+}
+
+.annotation .title{
+  color:var(--savills-yellow);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:13px;
+  font-weight:700;
+}
+
+.annotation .phase{
+  color:var(--white);
+  margin:4px 0 7px;
+  font-weight:500;
+}
+
+.annotation .metric{
+  display:flex;
+  justify-content:space-between;
+  gap:22px;
+  border-top:1px solid rgba(189,194,199,.22);
+  padding-top:5px;
+  margin-top:5px;
+}
+
+.annotation .metric strong{
+  color:var(--white);
+  font-weight:700;
+}
+
+.annotation .read{
+  margin-top:8px;
+  color:var(--savills-steel-30);
+}
+
+
+/* =========================================================
+   SIGN-IN / CENTER STATE
+   ========================================================= */
+
+.center{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+
+  background:rgba(37,39,58,.98);
+
+  z-index:20;
+  text-align:center;
+  padding:30px;
+}
+
+.center[hidden]{
+  display:none;
+}
+
+.center h2{
+  margin:0;
+  color:var(--savills-yellow);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:22px;
+  font-weight:700;
+}
+
+.center p{
+  margin:0;
+  max-width:620px;
+  color:var(--savills-steel-20);
+  font-size:13px;
+  line-height:1.5;
+}
+
+
+/* =========================================================
+   PROCESS SCHEDULE
+   ========================================================= */
+
+.schedule{
+  border:1px solid var(--border);
+  border-radius:6px;
+
+  background:var(--savills-navy-deep);
+
+  display:grid;
+  grid-template-columns:none;
+
+  min-height:78px;
+  overflow:hidden;
+}
+
+.phasebox{
+  padding:10px 12px;
+  text-align:center;
+
+  border-right:1px solid rgba(189,194,199,.20);
+
+  color:var(--white);
+
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:11px;
+  line-height:1.3;
+}
+
+.phasebox:last-child{
+  border-right:0;
+}
+
+.phasebox strong{
+  display:block;
+  margin-bottom:6px;
+
+  font-family:Gotham,Arial,sans-serif;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.15px;
+}
+
+.tiny{
+  color:var(--savills-steel-30);
+  font-size:10px;
+  line-height:1.35;
+}
+
+.dynamicPhase{
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb,var(--stage-color) 15%,transparent),
+      rgba(27,29,44,.98)
+    );
+
+  box-shadow:inset 0 3px 0 var(--stage-color);
+}
+
+.dynamicPhase strong{
+  color:var(--stage-color);
+}
+
+
+/* Legacy phase classes retained */
+
+.phasebox.loi{
+  background:rgba(35,130,145,.12);
+  box-shadow:inset 0 3px 0 var(--savills-teal);
+}
+
+.phasebox.lease{
+  background:rgba(9,124,232,.08);
+}
+
+.phasebox.post{
+  background:rgba(255,223,0,.07);
+}
+
+
+/* =========================================================
+   FINANCIAL IMPACT PANEL
+   ========================================================= */
+
+.impact{
+  border:1px solid rgba(189,194,199,.30);
+  border-radius:7px;
+
+  background:var(--savills-navy-deep);
+
+  padding:10px 16px;
+
+  text-align:center;
+
+  min-height:82px;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+
+  box-shadow:inset 0 3px 0 var(--savills-yellow);
+}
+
+.impact-title{
+  color:var(--savills-yellow);
+
+  font-family:Gotham,Arial,sans-serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.35px;
+}
+
+.impact-delta{
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:18px;
+  font-weight:700;
+  margin:6px 0;
+}
+
+.impact-delta.gain{
+  color:var(--savills-teal);
+}
+
+.impact-delta.loss{
+  color:var(--savills-red);
+}
+
+.impact-delta.neutral{
+  color:var(--white);
+}
+
+.impact-npv{
+  color:var(--savills-steel-20);
+
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:13px;
+  font-weight:500;
+
+  word-spacing:3px;
+}
+
+
+/* =========================================================
+   CHART TYPOGRAPHY
+   ========================================================= */
+
+.axis{
+  fill:var(--savills-steel-30);
+
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:12px;
+  font-weight:600;
+}
+
+.proc{
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.1px;
+}
+
+.t1{
+  fill:var(--savills-yellow);
+
+  font-family:Gotham,Arial,sans-serif;
+  font-size:13px;
+  font-weight:700;
+}
+
+.t2{
+  fill:var(--savills-steel-20);
+
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:11px;
+  font-weight:500;
+}
+
+
+/* =========================================================
+   CHART STRUCTURE / GUIDES
+   ========================================================= */
+
+.grid{
+  stroke:var(--grid);
+  stroke-width:.8;
+}
+
+.guide{
+  stroke:var(--savills-yellow);
+  stroke-width:2;
+}
+
+.guideDash{
+  stroke:var(--savills-teal);
+  stroke-width:1.8;
+  stroke-dasharray:7 5;
+  opacity:.88;
+}
+
+.windowArrow{
+  stroke:var(--savills-teal);
+  stroke-width:1.8;
+  fill:none;
+}
+
+.windowShade{
+  fill:var(--savills-teal);
+  fill-opacity:.07;
+}
+
+.sel{
+  stroke:var(--white);
+  stroke-width:1.2;
+  stroke-dasharray:3 4;
+  opacity:.75;
+}
+
+.dot{
+  stroke:var(--white);
+  stroke-width:2;
+}
+
+
+/* =========================================================
+   LEASE / NORTH STAR SUPPORT CLASSES
+   ========================================================= */
+
+.leaseNorthStar{
+  stroke:var(--savills-red);
+  stroke-width:2.4;
+  stroke-dasharray:6 4;
+}
+
+.leaseNorthStarText{
+  fill:var(--savills-red);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:12px;
+  font-weight:700;
+}
+
+.leaseNorthStarDate{
+  fill:var(--savills-steel-20);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:11px;
+  font-weight:700;
+}
+
+
+/* =========================================================
+   SAVILLS LOGO PLACEHOLDER
+   index.html element comes in final header pass.
+   This class is safe to exist before the element does.
+   ========================================================= */
+
+.savills-logo{
+  display:block;
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.savills-logo-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:4px;
+}
+
+
+/* =========================================================
+   SMALLER SCREEN SAFETY
+   ========================================================= */
+
+@media (max-width:1200px){
+
+  .toolbar{
+    gap:7px;
+  }
+
+  .brand{
+    font-size:13px;
+  }
+
+  .toolbar label,
+  .status,
+  select,
+  button{
+    font-size:10px;
+  }
+
+  .legend{
+    font-size:11px;
+  }
+
+  .axis{
+    font-size:11px;
+  }
+
+  .phasebox strong{
+    font-size:12px;
+  }
+
+  .phasebox .tiny{
+    font-size:9px;
+  }
+}
