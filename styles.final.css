@@ -1,0 +1,654 @@
+:root{
+  --savills-navy:#25273A;
+  --savills-navy-deep:#1B1D2C;
+  --savills-navy-soft:#303244;
+  --savills-navy-cube:#34364A;
+
+  --savills-yellow:#FFDF00;
+  --savills-teal:#238291;
+  --savills-red:#CE181E;
+
+  --savills-steel:#79828C;
+  --savills-steel-50:#BDC2C7;
+  --savills-steel-30:#D7DADE;
+  --savills-steel-20:#E3E6E8;
+  --savills-steel-10:#F2F3F5;
+
+  --savills-blue:#097CE8;
+  --savills-green:#3AA95C;
+  --savills-orange:#EF6B00;
+  --savills-pink:#D3397F;
+  --savills-purple:#83007E;
+
+  --white:#FFFFFF;
+  --black:#000000;
+
+  --bg:var(--savills-navy);
+  --panel:var(--savills-navy-deep);
+  --panel-soft:var(--savills-navy-soft);
+
+  --grid:rgba(215,218,222,.10);
+  --text:var(--white);
+  --muted:var(--savills-steel-50);
+  --border:rgba(189,194,199,.28);
+
+  --yellow:var(--savills-yellow);
+  --teal:var(--savills-teal);
+  --red:var(--savills-red);
+
+  --cyan:var(--savills-yellow);
+  --cyan2:var(--savills-teal);
+  --amber:var(--savills-yellow);
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  width:100%;
+  height:100%;
+  background-color:var(--savills-navy);
+  background-image:
+    linear-gradient(
+      rgba(37,39,58,.18),
+      rgba(37,39,58,.18)
+    ),
+    url("savills-cube-navy.jpg");
+  background-size:cover;
+  background-position:center center;
+  background-repeat:no-repeat;
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:Gotham,Arial,sans-serif;
+  overflow:hidden;
+}
+
+#app{
+  height:100vh;
+  display:grid;
+  grid-template-rows:auto 1fr auto auto;
+  gap:8px;
+  padding:10px;
+  background:transparent;
+}
+
+
+/* =========================================================
+   TOOLBAR / HEADER
+   ========================================================= */
+
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:42px;
+  padding:0 2px;
+}
+
+.brand{
+  margin-right:auto;
+  color:var(--savills-yellow);
+  font-size:19px;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+
+.toolbar label,
+.status{
+  color:var(--savills-steel-30);
+  font-size:14px;
+  font-weight:600;
+}
+
+select,
+button{
+  background:var(--savills-navy-deep);
+  color:var(--white);
+  border:1px solid rgba(189,194,199,.38);
+  border-radius:4px;
+  padding:7px 9px;
+  font-family:Gotham,Arial,sans-serif;
+  font-size:14px;
+  font-weight:600;
+}
+
+select:focus,
+button:focus{
+  outline:2px solid rgba(255,223,0,.42);
+  outline-offset:1px;
+}
+
+button{
+  cursor:pointer;
+}
+
+button:hover{
+  border-color:var(--savills-yellow);
+}
+
+.primary{
+  background:var(--savills-yellow);
+  border-color:var(--savills-yellow);
+  color:var(--black);
+  font-weight:700;
+}
+
+.primary:hover{
+  background:var(--savills-yellow);
+  border-color:var(--white);
+  color:var(--black);
+}
+
+.toggle{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.toggle input{
+  accent-color:var(--savills-yellow);
+}
+
+.status{
+  padding:6px 9px;
+  border:1px solid rgba(189,194,199,.30);
+  border-radius:4px;
+}
+
+.ok{
+  color:#9DD4AD;
+}
+
+.warn{
+  color:var(--savills-yellow);
+}
+
+.err{
+  color:#F3B584;
+}
+
+
+/* =========================================================
+   MAIN CHART / SUBTLE SAVILLS CUBED DEPTH
+   ========================================================= */
+
+.wrap{
+  position:relative;
+  min-height:0;
+  border:1px solid rgba(189,194,199,.14);
+  border-radius:6px;
+  background:rgba(37,39,58,.72);
+  overflow:hidden;
+  box-shadow:none;
+  isolation:isolate;
+}
+
+/*
+  Restrained geometric / Cubed-style brand depth.
+  Intentionally low contrast so it reads as branding,
+  never as chart information.
+*/
+.wrap::before{
+  content:none;
+}
+
+svg{
+  position:relative;
+  z-index:1;
+  display:block;
+  width:100%;
+  height:100%;
+  font-family:Barlow,Gotham,Arial,sans-serif;
+}
+
+
+/* =========================================================
+   LEGEND
+   ========================================================= */
+
+.legend{
+  position:absolute;
+  z-index:4;
+  top:11px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:28px;
+  color:var(--savills-steel-20);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.1px;
+  pointer-events:none;
+}
+
+.swatch{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  margin-right:6px;
+  border-radius:1px;
+  vertical-align:-1px;
+}
+
+
+/* =========================================================
+   ANNOTATION POPUP
+   ========================================================= */
+
+.annotation{
+  position:absolute;
+  z-index:5;
+  pointer-events:none;
+  max-width:390px;
+  padding:12px 14px;
+  background:rgba(37,39,58,.98);
+  border:1px solid rgba(189,194,199,.42);
+  border-radius:6px;
+  color:var(--white);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:16px;
+  line-height:1.42;
+  box-shadow:0 12px 28px rgba(0,0,0,.28);
+}
+
+.annotation .title{
+  color:var(--savills-yellow);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:18px;
+  font-weight:700;
+}
+
+.annotation .phase{
+  color:var(--white);
+  margin:4px 0 7px;
+  font-weight:600;
+}
+
+.annotation .metric{
+  display:flex;
+  justify-content:space-between;
+  gap:22px;
+  border-top:1px solid rgba(189,194,199,.22);
+  padding-top:5px;
+  margin-top:5px;
+}
+
+.annotation .metric strong{
+  color:var(--white);
+  font-weight:700;
+}
+
+.annotation .read{
+  margin-top:8px;
+  color:var(--savills-steel-30);
+}
+
+
+/* =========================================================
+   SIGN-IN / LOADING STATE
+   ========================================================= */
+
+.center{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+  background:rgba(37,39,58,.985);
+  z-index:20;
+  text-align:center;
+  padding:30px;
+}
+
+.center::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+
+  background:
+    linear-gradient(
+      30deg,
+      transparent 0 74%,
+      rgba(255,255,255,.018) 74% 75%,
+      transparent 75%
+    ),
+    linear-gradient(
+      150deg,
+      transparent 0 80%,
+      rgba(255,223,0,.014) 80% 81%,
+      transparent 81%
+    );
+
+  background-size:420px 290px,520px 350px;
+  background-position:100% 100%,100% 100%;
+}
+
+.center > *{
+  position:relative;
+  z-index:1;
+}
+
+.center[hidden]{
+  display:none;
+}
+
+.center h2{
+  margin:0;
+  color:var(--savills-yellow);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:.15px;
+}
+
+.center p{
+  margin:0;
+  max-width:620px;
+  color:var(--savills-steel-20);
+  font-size:16px;
+  font-weight:500;
+  line-height:1.5;
+}
+
+
+/* =========================================================
+   PROCESS SCHEDULE
+   ========================================================= */
+
+.schedule{
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--savills-navy-deep);
+  display:grid;
+  grid-template-columns:none;
+  min-height:78px;
+  overflow:hidden;
+}
+
+.phasebox{
+  padding:10px 12px;
+  text-align:center;
+  border-right:1px solid rgba(189,194,199,.20);
+  color:var(--white);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:14px;
+  line-height:1.3;
+}
+
+.phasebox:last-child{
+  border-right:0;
+}
+
+.phasebox strong{
+  display:block;
+  margin-bottom:6px;
+  font-family:Gotham,Arial,sans-serif;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:.1px;
+}
+
+.tiny{
+  color:var(--savills-steel-30);
+  font-size:15px;
+  font-weight:600;
+  line-height:1.4;
+}
+
+.dynamicPhase{
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb,var(--stage-color) 14%,transparent),
+      rgba(27,29,44,.985)
+    );
+  box-shadow:inset 0 3px 0 var(--stage-color);
+}
+
+.dynamicPhase strong{
+  color:var(--stage-color);
+}
+
+.phasebox.loi{
+  background:rgba(35,130,145,.10);
+  box-shadow:inset 0 3px 0 var(--savills-teal);
+}
+
+.phasebox.lease{
+  background:rgba(9,124,232,.07);
+}
+
+.phasebox.post{
+  background:rgba(255,223,0,.06);
+}
+
+
+/* =========================================================
+   FINANCIAL IMPACT PANEL
+   ========================================================= */
+
+.impact{
+  position:relative;
+  border:1px solid rgba(189,194,199,.30);
+  border-radius:7px;
+  background:var(--savills-navy-deep);
+  padding:10px 16px;
+  text-align:center;
+  min-height:82px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  box-shadow:inset 0 3px 0 var(--savills-yellow);
+  overflow:hidden;
+}
+
+.impact-title{
+  color:var(--savills-yellow);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:.25px;
+}
+
+.impact-delta{
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:21px;
+  font-weight:700;
+  margin:6px 0;
+}
+
+.impact-delta.gain{
+  color:var(--savills-teal);
+}
+
+.impact-delta.loss{
+  color:var(--savills-red);
+}
+
+.impact-delta.neutral{
+  color:var(--white);
+}
+
+.impact-npv{
+  color:var(--savills-steel-20);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:15px;
+  font-weight:600;
+  word-spacing:3px;
+}
+
+
+/* =========================================================
+   CHART TYPOGRAPHY
+   ========================================================= */
+
+.axis{
+  fill:var(--savills-steel-30);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:14px;
+  font-weight:600;
+}
+
+.proc{
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.05px;
+}
+
+.t1{
+  fill:var(--savills-yellow);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:15px;
+  font-weight:700;
+}
+
+.t2{
+  fill:var(--savills-steel-20);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:13px;
+  font-weight:600;
+}
+
+
+/* =========================================================
+   CHART STRUCTURE
+   ========================================================= */
+
+.grid{
+  stroke:var(--grid);
+  stroke-width:.6;
+}
+
+.guide{
+  stroke:var(--savills-yellow);
+  stroke-width:2;
+}
+
+.guideDash{
+  stroke:var(--savills-teal);
+  stroke-width:1.8;
+  stroke-dasharray:7 5;
+  opacity:.88;
+}
+
+.windowArrow{
+  stroke:var(--savills-teal);
+  stroke-width:1.8;
+  fill:none;
+}
+
+.windowShade{
+  fill:var(--savills-teal);
+  fill-opacity:.065;
+}
+
+.sel{
+  stroke:var(--white);
+  stroke-width:1.2;
+  stroke-dasharray:3 4;
+  opacity:.75;
+}
+
+.dot{
+  stroke:var(--white);
+  stroke-width:2;
+}
+
+
+/* =========================================================
+   LEASE EXPIRATION SUPPORT CLASSES
+   ========================================================= */
+
+.leaseNorthStar{
+  stroke:var(--savills-red);
+  stroke-width:2.4;
+  stroke-dasharray:6 4;
+}
+
+.leaseNorthStarText{
+  fill:var(--savills-red);
+  font-family:Gotham,Arial,sans-serif;
+  font-size:16px;
+  font-weight:700;
+}
+
+.leaseNorthStarDate{
+  fill:var(--savills-red);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:16px;
+  font-weight:700;
+}
+
+
+/* =========================================================
+   SAVILLS LOGO
+   Element gets added during index.html pass.
+   ========================================================= */
+
+.savills-logo-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:6px;
+  padding-left:10px;
+  border-left:1px solid rgba(189,194,199,.22);
+}
+
+.savills-logo{
+  display:block;
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+
+/* =========================================================
+   RESPONSIVE SAFETY
+   ========================================================= */
+
+@media (max-width:1200px){
+
+  .toolbar{
+    gap:7px;
+  }
+
+  .brand{
+    font-size:16px;
+  }
+
+  .toolbar label,
+  .status,
+  select,
+  button{
+    font-size:12px;
+  }
+
+  .legend{
+    font-size:13px;
+  }
+
+  .axis{
+    font-size:13px;
+  }
+
+  .proc{
+    font-size:13px;
+  }
+
+  .phasebox strong{
+    font-size:14px;
+  }
+
+  .phasebox .tiny{
+    font-size:14px;
+  }
+}
