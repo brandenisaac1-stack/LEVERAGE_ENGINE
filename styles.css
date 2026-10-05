@@ -397,9 +397,9 @@ svg{
 
 .tiny{
   color:var(--savills-steel-30);
-  font-size:13px;
-  font-weight:500;
-  line-height:1.35;
+  font-size:15px;
+  font-weight:600;
+  line-height:1.4;
 }
 
 .dynamicPhase{
@@ -649,6 +649,6 @@ svg{
   }
 
   .phasebox .tiny{
-    font-size:11px;
+    font-size:14px;
   }
 }
