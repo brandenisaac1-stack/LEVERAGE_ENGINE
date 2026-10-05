@@ -1,6 +1,6 @@
 // Process overlay. Normal mode uses PROCESS_STAGE; restructure mode uses explicit restructure phase start/end fields.
-const PALETTE=['#16e6e9','#3e91d7','#7b8cff','#49be85','#d5a536','#d77ac8','#75c7c4','#d28b55','#8dc56b'];
-const RESTRUCTURE_COLORS=['#3e91d7','#d5a536','#d77ac8','#75c7c4','#8dc56b'];
+const PALETTE=['#238291','#097CE8','#3AA95C','#EF6B00','#D3397F','#83007E','#6CA7B1','#EE9855','#9DD4AD'];
+const RESTRUCTURE_COLORS=['#238291','#097CE8','#3AA95C','#EF6B00','#D3397F'];
 
 function cleanStage(v){return String(v??'').trim().replace(/\s+/g,' ')}
 function validDate(v){if(v instanceof Date)return Number.isFinite(+v)?new Date(+v):null;if(typeof v==='number'){const d=new Date(v);return Number.isFinite(+d)?d:null}if(typeof v==='string'&&v.trim()){const d=new Date(v);return Number.isFinite(+d)?d:null}return null}
@@ -68,15 +68,15 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl,restruc
   const defs=svg.querySelector('defs')||svg.insertBefore(ns('defs'),svg.firstChild);
   model.forEach((p,i)=>{
     const a=Math.max(m.l,x(p.start)),yy=m.t+(H-m.t-32)*p.lane;
-    if(p.pointOnly){if(a>=m.l&&a<=W-m.r){svg.appendChild(ns('circle',{cx:a,cy:yy,r:5,fill:p.color,stroke:p.color,'stroke-width':'2'}));const labelX=Math.max(m.l+90,a-10);const title=txt(labelX,yy-14,p.key,'proc','end');title.setAttribute('fill',p.color);const sub=txt(labelX,yy+20,`${fmtDate(p.start)} · MILESTONE`,'axis','end');sub.setAttribute('fill','#a9bac7')}return}
+    if(p.pointOnly){if(a>=m.l&&a<=W-m.r){svg.appendChild(ns('circle',{cx:a,cy:yy,r:5,fill:p.color,stroke:p.color,'stroke-width':'2'}));const labelX=Math.max(m.l+90,a-10);const title=txt(labelX,yy-14,p.key,'proc','end');title.setAttribute('fill',p.color);const sub=txt(labelX,yy+20,`${fmtDate(p.start)} · MILESTONE`,'axis','end');sub.setAttribute('fill','#D7DADE')}return}
     const b=Math.min(W-m.r,x(p.exclusiveEnd));if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a)return;
     const width=b-a,id=`processGradientLive${i}`;const g=ns('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'0%'});g.appendChild(ns('stop',{offset:'0%','stop-color':p.color,'stop-opacity':'.10'}));g.appendChild(ns('stop',{offset:'50%','stop-color':p.color,'stop-opacity':'.34'}));g.appendChild(ns('stop',{offset:'100%','stop-color':p.color,'stop-opacity':'.10'}));defs.appendChild(g);
     svg.appendChild(ns('rect',{x:a,y:yy-8,width,height:16,rx:6,fill:`url(#${id})`,stroke:p.color,'stroke-width':'1.6','stroke-opacity':'.9'}));
     const mid=(a+b)/2,titleText=p.restructure?shortLabel(p.key,width):p.key;
-    const title=txt(mid,yy-14,titleText,'proc','middle');title.setAttribute('fill',p.color);title.style.setProperty('font-size','16px','important');title.style.setProperty('font-weight','700','important');title.style.setProperty('paint-order','stroke','important');title.style.setProperty('stroke','#06101f','important');title.style.setProperty('stroke-width','2px','important');
+    const title=txt(mid,yy-14,titleText,'proc','middle');title.setAttribute('fill',p.color);title.style.setProperty('font-size','16px','important');title.style.setProperty('font-weight','700','important');title.style.setProperty('paint-order','stroke','important');title.style.setProperty('stroke',''#1B1D2C','important');title.style.setProperty('stroke-width','2px','important');
     const dateText=`${fmtDate(p.start)} · ${p.duration} MO`;
 const dateX=a+4;
-const sub=txt(dateX,yy+21,dateText,'axis','start');sub.setAttribute('fill','#a9bac7');sub.style.setProperty('font-size','16px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#06101f','important');sub.style.setProperty('stroke-width','2px','important');
+const sub=txt(dateX,yy+21,dateText,'axis','start');sub.setAttribute('fill','#D7DADE');sub.style.setProperty('font-size','16px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#1B1D2C','important');sub.style.setProperty('stroke-width','2px','important');
   })
 }
 export {drawProcess,buildStageModel,buildRestructureModel};
