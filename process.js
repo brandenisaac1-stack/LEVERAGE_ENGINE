@@ -1,6 +1,23 @@
 // Process overlay. Normal mode uses PROCESS_STAGE; restructure mode uses explicit restructure phase start/end fields.
-const PALETTE=['#238291','#097CE8','#3AA95C','#EF6B00','#D3397F','#83007E','#6CA7B1','#EE9855','#9DD4AD'];
-const RESTRUCTURE_COLORS=['#238291','#097CE8','#3AA95C','#EF6B00','#D3397F'];
+const PALETTE=[
+  '#238291',
+  '#6CA7B1',
+  '#79828C',
+  '#A1A7AD',
+  '#5DA5EE',
+  '#8ABDF3',
+  '#6CA7B1',
+  '#BDC2C7',
+  '#D7DADE'
+];
+
+const RESTRUCTURE_COLORS=[
+  '#097CE8',
+  '#5DA5EE',
+  '#6CA7B1',
+  '#238291',
+  '#A1A7AD'
+];
 
 function cleanStage(v){return String(v??'').trim().replace(/\s+/g,' ')}
 function validDate(v){if(v instanceof Date)return Number.isFinite(+v)?new Date(+v):null;if(typeof v==='number'){const d=new Date(v);return Number.isFinite(+d)?d:null}if(typeof v==='string'&&v.trim()){const d=new Date(v);return Number.isFinite(+d)?d:null}return null}

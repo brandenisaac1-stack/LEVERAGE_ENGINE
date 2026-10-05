@@ -3,7 +3,7 @@
 
 // SAVILLS PRESENTATION SYSTEM
 const RESTRUCTURE='#097CE8';
-const RESTRUCTURE_TEXT='#8ABDF3';
+const RESTRUCTURE_TEXT='#5DA5EE';
 const SAVILLS_NAVY='#25273A';
 const SAVILLS_NAVY_DEEP='#1B1D2C';
 const SAVILLS_YELLOW='#FFDF00';
@@ -197,29 +197,20 @@ function ensurePanel(defaultPct,rerender){
 
     panel.append(title,input,value,reset);
 
-    const impact=document.getElementById('impact');
+    const chartWrap=document.getElementById('wrap');
 
-    if(impact){
-      Object.assign(impact.style,{
-        position:'relative',
-        paddingRight:'365px',
-        minHeight:'126px'
-      });
+if(chartWrap){
+  Object.assign(panel.style,{
+    position:'absolute',
+    right:'18px',
+    top:'190px',
+    left:'auto',
+    width:'315px',
+    zIndex:'14'
+  });
 
-      Object.assign(panel.style,{
-        position:'absolute',
-        right:'10px',
-        top:'7px',
-        left:'auto',
-        width:'345px',
-        zIndex:'30'
-      });
-
-      impact.appendChild(panel)
-    }else{
-      (document.getElementById('wrap')||document.body)
-        .appendChild(panel)
-    }
+  chartWrap.appendChild(panel);
+}
   }
 
   const input=document.getElementById(PANEL_ID+'Range');
@@ -382,12 +373,12 @@ function focusedMilestones({
   if(!count)return;
 
   const colors=[
-    '#238291',
-    '#097CE8',
-    '#3AA95C',
-    '#EF6B00',
-    '#D3397F'
-  ];
+  '#097CE8',
+  '#5DA5EE',
+  '#6CA7B1',
+  '#238291',
+  '#A1A7AD'
+];
 
   for(let i=0;i<count;i++){
     const a=starts[i];
