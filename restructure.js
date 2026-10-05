@@ -648,15 +648,8 @@ function drawRestructure({
 
     const ch=98;
 
-    const cx=Math.max(
-      m.l+10,
-      Math.min(
-        W-m.r-cw-10,
-        ex-cw*.45
-      )
-    );
-
-    const cy=m.t+52;
+    const cx=W-m.r-cw-18;
+const cy=base-ch-18;
 
     svg.appendChild(
       ns('rect',{
