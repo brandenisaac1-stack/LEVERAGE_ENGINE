@@ -85,11 +85,69 @@ function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,restructureMode=fa
     const b=Math.min(W-m.r,x(p.exclusiveEnd));if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a)return;
     const width=b-a,id=`processGradientLive${i}`;const g=ns('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'0%'});g.appendChild(ns('stop',{offset:'0%','stop-color':p.color,'stop-opacity':'.10'}));g.appendChild(ns('stop',{offset:'50%','stop-color':p.color,'stop-opacity':'.34'}));g.appendChild(ns('stop',{offset:'100%','stop-color':p.color,'stop-opacity':'.10'}));defs.appendChild(g);
     svg.appendChild(ns('rect',{x:a,y:yy-8,width,height:16,rx:6,fill:`url(#${id})`,stroke:p.color,'stroke-width':'1.6','stroke-opacity':'.9'}));
-    const mid=(a+b)/2,titleText=p.restructure?shortLabel(p.key,width):p.key;
-    const title=txt(mid,yy-14,titleText,'proc','middle');title.setAttribute('fill',p.color);title.style.setProperty('font-size','19px','important');title.style.setProperty('font-weight','700','important');title.style.setProperty('paint-order','stroke','important');title.style.setProperty('stroke','#1B1D2C','important');title.style.setProperty('stroke-width','2px','important');
+        const mid=(a+b)/2;
+    const titleText=p.restructure?shortLabel(p.key,width):p.key;
+
+    const edgePad=12;
+    const titleGuard=150;
+
+    let titleX=mid;
+    let titleAnchor='middle';
+
+    if(mid-titleGuard<m.l+edgePad){
+      titleX=m.l+edgePad;
+      titleAnchor='start';
+    }else if(mid+titleGuard>W-m.r-edgePad){
+      titleX=W-m.r-edgePad;
+      titleAnchor='end';
+    }
+
+    const title=txt(
+      titleX,
+      yy-14,
+      titleText,
+      'proc',
+      titleAnchor
+    );
+
+    title.setAttribute('fill',p.color);
+    title.style.setProperty('font-size','19px','important');
+    title.style.setProperty('font-weight','700','important');
+    title.style.setProperty('paint-order','stroke','important');
+    title.style.setProperty('stroke','#1B1D2C','important');
+    title.style.setProperty('stroke-width','2px','important');
+
     const dateText=`${fmtDate(p.start)} · ${p.duration} MO`;
-const dateX=a+4;
-const sub=txt(dateX,yy+23,dateText,'axis','start');sub.setAttribute('fill','#D7DADE');sub.style.setProperty('font-size','18px','important');sub.style.setProperty('font-weight','700','important');sub.style.setProperty('paint-order','stroke','important');sub.style.setProperty('stroke','#1B1D2C','important');sub.style.setProperty('stroke-width','2px','important');
+
+    const dateGuard=145;
+
+    let dateX=a+4;
+    let dateAnchor='start';
+
+    if(dateX+dateGuard>W-m.r-edgePad){
+      dateX=W-m.r-edgePad;
+      dateAnchor='end';
+    }else{
+      dateX=Math.max(
+        m.l+edgePad,
+        dateX
+      );
+    }
+
+    const sub=txt(
+      dateX,
+      yy+23,
+      dateText,
+      'axis',
+      dateAnchor
+    );
+
+    sub.setAttribute('fill','#D7DADE');
+    sub.style.setProperty('font-size','18px','important');
+    sub.style.setProperty('font-weight','700','important');
+    sub.style.setProperty('paint-order','stroke','important');
+    sub.style.setProperty('stroke','#1B1D2C','important');
+    sub.style.setProperty('stroke-width','2px','important');
   })
 }
 export {drawProcess,buildStageModel,buildRestructureModel};
