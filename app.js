@@ -1418,10 +1418,9 @@ async function load(){
 
   center.hidden=true;
 
-  state(
-    `Live · ${DATA.length} chart rows`,
-    'ok'
-  );
+    status.textContent='';
+  status.className='status';
+  status.style.display='none';
 
 
   if(CFG.selected){
@@ -1878,25 +1877,37 @@ function render(){
   }
 
 
+   const axisStart=
+    new Date(
+      P[0].date.getFullYear(),
+      P[0].date.getMonth()<6 ? 0 : 6,
+      1
+    );
+
+  if(+axisStart<x0){
+    axisStart.setMonth(
+      axisStart.getMonth()+6
+    );
+  }
+
+  const axisTicks=[];
+
   for(
-    let yr=
-      P[0].date.getFullYear();
-
-    yr<=
-      P.at(-1).date.getFullYear();
-
-    yr++
+    let d=new Date(axisStart);
+    +d<=x1 && axisTicks.length<7;
+    d=new Date(
+      d.getFullYear(),
+      d.getMonth()+6,
+      1
+    )
   ){
+    axisTicks.push(
+      new Date(d)
+    );
+  }
 
-    const d=
-      new Date(
-        `${yr}-01-01T00:00:00`
-      );
-
-    if(
-      +d>=x0 &&
-      +d<=x1
-    ){
+  axisTicks.forEach(
+    d=>{
 
       svg.appendChild(
         ns(
@@ -1914,12 +1925,12 @@ function render(){
       txt(
         x(d),
         H-10,
-        'Jan '+yr,
+        `${d.getMonth()===0?'Jan':'Jul'} ${d.getFullYear()}`,
         'axis',
         'middle'
       );
     }
-  }
+  );
 
 
   const wx1=

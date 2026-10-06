@@ -324,10 +324,10 @@ function renderIntelligence(
     "LIVE DECISION INTELLIGENCE"
   );
 
-  const basis = make(
+    const basis = make(
     "div",
     "ldi-basis",
-    "% CHANGE VS. BASE STATE"
+    "LIVE MOVEMENT VS. BASE STATE"
   );
 
   header.append(

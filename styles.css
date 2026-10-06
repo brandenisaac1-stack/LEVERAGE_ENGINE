@@ -367,7 +367,7 @@ svg{
   border-radius:7px;
   background:rgba(27,29,44,.97);
   overflow:hidden;
-  min-height:154px;
+  min-height:164px;
   box-shadow:
     inset 0 3px 0 rgba(255,223,0,.92),
     0 8px 22px rgba(0,0,0,.14);
@@ -404,13 +404,13 @@ svg{
 .ldi-sequence{
   display:grid;
   grid-template-columns:
-    minmax(0,1fr) 18px
-    minmax(0,1fr) 18px
-    minmax(0,1fr) 18px
-    minmax(0,1fr) 18px
+    minmax(0,1fr) 16px
+    minmax(0,1fr) 16px
+    minmax(0,1fr) 16px
+    minmax(0,1fr) 16px
     minmax(0,1.22fr);
   align-items:stretch;
-  min-height:120px;
+  min-height:130px;
 }
 
 .ldi-module{
@@ -456,12 +456,12 @@ svg{
 }
 
 .ldi-movement{
-  margin:5px 0 4px;
+  margin:6px 0 5px;
   font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:24px;
+  font-size:28px;
   line-height:1;
   font-weight:700;
-  letter-spacing:-.25px;
+  letter-spacing:-.3px;
   color:var(--white);
 }
 
@@ -479,26 +479,26 @@ svg{
 
 .ldi-explanation{
   margin-top:auto;
-  color:var(--savills-steel-20);
+  color:var(--savills-steel-10);
   font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:12px;
+  font-size:13px;
   font-weight:600;
-  line-height:1.3;
+  line-height:1.38;
 }
 
 .ldi-connector{
   display:flex;
   align-items:center;
   justify-content:center;
-  color:rgba(189,194,199,.42);
+  color:rgba(189,194,199,.28);
   font-family:Arial,sans-serif;
-  font-size:21px;
+  font-size:15px;
   font-weight:400;
   background:rgba(27,29,44,.44);
 }
 
 .ldi-connector-final{
-  color:rgba(255,223,0,.52);
+  color:rgba(255,223,0,.38);
 }
 
 .ldi-capture{
