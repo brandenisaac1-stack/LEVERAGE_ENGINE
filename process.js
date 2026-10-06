@@ -64,8 +64,6 @@ function buildRestructureModel(data){
   return [...normalBefore,...alt];
 }
 
-function syncSchedule(el,model){if(!el)return;el.innerHTML='';el.style.gridTemplateColumns=`repeat(${Math.max(1,model.length)},minmax(0,1fr))`;for(const p of model){const box=document.createElement('div');box.className='phasebox dynamicPhase';box.style.setProperty('--stage-color',p.color);box.style.borderTop=`3px solid ${p.color}`;const strong=document.createElement('strong');strong.textContent=p.key;strong.style.setProperty('color',p.color,'important');const tiny=document.createElement('span');tiny.className='tiny';tiny.textContent=p.pointOnly?`${fmtDate(p.start)} · MILESTONE · ${p.description}`:`${fmtDate(p.start)} · ${p.duration} MO · ${p.description}`;box.append(strong,tiny);el.appendChild(box)}}
-
 function shortLabel(stage,width){
   if(width>=230)return stage;
   const s=stage.toUpperCase();
@@ -76,12 +74,10 @@ function shortLabel(stage,width){
   return stage;
 }
 
-function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,scheduleEl,restructureMode=false}){
+function drawProcess({data,x,m,W,H,leaseExpiration,svg,ns,txt,restructureMode=false}){
   const normalModel=buildStageModel(data,leaseExpiration);
   const model=restructureMode?buildRestructureModel(data):normalModel;
-  // Keep the bottom schedule synchronized with the exact process model shown on the chart.
-  // Normal mode = normal roadmap; Early Restructure mode = alternate restructure roadmap.
-  syncSchedule(scheduleEl,model);if(!model.length)return;
+  if(!model.length)return;
   const defs=svg.querySelector('defs')||svg.insertBefore(ns('defs'),svg.firstChild);
   model.forEach((p,i)=>{
     const a=Math.max(m.l,x(p.start)),yy=m.t+(H-m.t-32)*p.lane;
