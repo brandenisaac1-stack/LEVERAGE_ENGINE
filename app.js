@@ -425,6 +425,15 @@ baseWindow:baseWin
 let P=scenario.series;
 const win=scenario.window;
 LAST_CONDITION_SCENARIO=scenario;
+const conditionsPanel=
+  document.getElementById('conditionsPanel');
+
+if(
+  conditionsPanel &&
+  typeof conditionsPanel.refreshSummary==='function'
+){
+  conditionsPanel.refreshSummary();
+}
 
 const W=wrap.clientWidth;
 const H=wrap.clientHeight;
@@ -435,16 +444,6 @@ r:20,
 t:68,
 b:32
 };
-
-const conditionsPanel=ensureConditionsPanel({
-mount:document.getElementById('conditionsMount')||wrap,
-rerender:render,
-getSummary:()=>LAST_CONDITION_SCENARIO
-});
-
-if(conditionsPanel&&typeof conditionsPanel.refreshSummary==='function'){
-conditionsPanel.refreshSummary();
-}
 
 const pw=W-m.l-m.r;
 const ph=H-m.t-m.b;
@@ -872,6 +871,18 @@ npv.textContent=
 function choose(i){
 selected=+i;
 select.value=String(selected);
+ensureConditionsPanel({
+  mount:wrap,
+
+  rerender:()=>{
+    render();
+  },
+
+  getSummary:()=>{
+    return LAST_CONDITION_SCENARIO;
+  }
+});
+
 render();
 updateImpact();
 renderLiveIntelligence();
