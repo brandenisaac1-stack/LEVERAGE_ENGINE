@@ -359,235 +359,74 @@ svg{
 
 
 /* =========================================================
-   LIVE DECISION INTELLIGENCE
+   PROCESS SCHEDULE
    ========================================================= */
 
-.live-intelligence{
-  border:1px solid rgba(189,194,199,.28);
-  border-radius:7px;
-  background:rgba(27,29,44,.97);
-  overflow:hidden;
-  min-height:164px;
-  box-shadow:
-    inset 0 3px 0 rgba(255,223,0,.92),
-    0 8px 22px rgba(0,0,0,.14);
-}
-
-.ldi-header{
-  min-height:34px;
-  padding:8px 14px 7px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:18px;
-  border-bottom:1px solid rgba(189,194,199,.18);
-  background:rgba(37,39,58,.88);
-}
-
-.ldi-heading{
-  color:var(--savills-yellow);
-  font-family:Gotham,Arial,sans-serif;
-  font-size:16px;
-  font-weight:700;
-  letter-spacing:.35px;
-}
-
-.ldi-basis{
-  color:var(--savills-steel-30);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:13px;
-  font-weight:600;
-  letter-spacing:.25px;
-  text-transform:uppercase;
-}
-
-.ldi-sequence{
+.schedule{
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--savills-navy-deep);
   display:grid;
-  grid-template-columns:
-    minmax(0,1fr) 16px
-    minmax(0,1fr) 16px
-    minmax(0,1fr) 16px
-    minmax(0,1fr) 16px
-    minmax(0,1.22fr);
-  align-items:stretch;
-  min-height:130px;
+  grid-template-columns:none;
+  min-height:78px;
+  overflow:hidden;
 }
 
-.ldi-module{
-  min-width:0;
-  padding:11px 12px 12px;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  background:rgba(27,29,44,.44);
-}
-
-.ldi-eyebrow{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  min-height:19px;
-  margin-bottom:4px;
-}
-
-.ldi-number{
-  color:var(--savills-steel);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:.3px;
-}
-
-.ldi-category{
+.phasebox{
+  padding:10px 12px;
+  text-align:center;
+  border-right:1px solid rgba(189,194,199,.20);
   color:var(--white);
+  font-family:Barlow,Gotham,Arial,sans-serif;
+  font-size:13px;
+  line-height:1.3;
+}
+
+.phasebox:last-child{
+  border-right:0;
+}
+
+.phasebox strong{
+  display:block;
+  margin-bottom:6px;
   font-family:Gotham,Arial,sans-serif;
-  font-size:13px;
-  font-weight:700;
-  letter-spacing:.15px;
-}
-
-.ldi-question{
-  color:var(--savills-steel-30);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:12px;
-  font-weight:600;
-  line-height:1.25;
-  min-height:30px;
-}
-
-.ldi-movement{
-  margin:6px 0 5px;
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:28px;
-  line-height:1;
-  font-weight:700;
-  letter-spacing:-.3px;
-  color:var(--white);
-}
-
-.ldi-movement.up{
-  color:var(--savills-teal);
-}
-
-.ldi-movement.down{
-  color:var(--savills-red);
-}
-
-.ldi-movement.neutral{
-  color:var(--savills-steel-20);
-}
-
-.ldi-explanation{
-  margin-top:auto;
-  color:var(--savills-steel-10);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:13px;
-  font-weight:600;
-  line-height:1.38;
-}
-
-.ldi-connector{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:rgba(189,194,199,.28);
-  font-family:Arial,sans-serif;
   font-size:15px;
-  font-weight:400;
-  background:rgba(27,29,44,.44);
+  font-weight:700;
+  letter-spacing:.1px;
 }
 
-.ldi-connector-final{
-  color:rgba(255,223,0,.38);
+.tiny{
+  color:var(--savills-steel-30);
+  font-size:15px;
+  font-weight:600;
+  line-height:1.4;
 }
 
-.ldi-capture{
-  position:relative;
+.dynamicPhase{
   background:
     linear-gradient(
-      135deg,
-      rgba(255,223,0,.055),
-      rgba(37,39,58,.94) 45%,
-      rgba(27,29,44,.98)
+      180deg,
+      color-mix(in srgb,var(--stage-color) 14%,transparent),
+      rgba(27,29,44,.985)
     );
-  border-left:1px solid rgba(255,223,0,.28);
-  padding-left:14px;
-  padding-right:14px;
+  box-shadow:inset 0 3px 0 var(--stage-color);
 }
 
-.ldi-capture .ldi-category{
-  color:var(--savills-yellow);
+.dynamicPhase strong{
+  color:var(--stage-color);
 }
 
-.ldi-capture-movement{
-  display:flex;
-  align-items:flex-end;
-  gap:8px;
-  margin:2px 0;
+.phasebox.loi{
+  background:rgba(35,130,145,.10);
+  box-shadow:inset 0 3px 0 var(--savills-teal);
 }
 
-.ldi-movement-primary{
-  margin:0;
-  font-size:28px;
+.phasebox.lease{
+  background:rgba(9,124,232,.07);
 }
 
-.ldi-vs-base{
-  padding-bottom:2px;
-  color:var(--savills-steel-30);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:.25px;
-}
-
-.ldi-state{
-  margin:3px 0 4px;
-  color:var(--white);
-  font-family:Gotham,Arial,sans-serif;
-  font-size:12px;
-  font-weight:700;
-  letter-spacing:.2px;
-}
-
-.ldi-state-strengthening{
-  color:var(--savills-teal);
-}
-
-.ldi-state-weakening{
-  color:var(--savills-red);
-}
-
-.ldi-state-stable{
-  color:var(--savills-steel-20);
-}
-
-.ldi-capture-explanation{
-  margin-top:0;
-}
-
-.ldi-alignment{
-  margin-top:auto;
-  padding-top:5px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  border-top:1px solid rgba(189,194,199,.16);
-}
-
-.ldi-alignment-label{
-  color:var(--savills-steel-30);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:.25px;
-}
-
-.ldi-alignment-value{
-  color:var(--savills-yellow);
-  font-family:Barlow,Gotham,Arial,sans-serif;
-  font-size:13px;
-  font-weight:700;
+.phasebox.post{
+  background:rgba(255,223,0,.06);
 }
 
 
@@ -805,42 +644,23 @@ svg{
     font-size:13px;
   }
 
-    .ldi-heading{
+  .phasebox strong{
     font-size:14px;
   }
 
-  .ldi-basis{
-    font-size:11px;
+  .phasebox .tiny{
+    font-size:14px;
   }
+}
+/* TEMPORARILY HIDE ANALYTICS PANELS */
 
-  .ldi-category{
-    font-size:11px;
-  }
+#intelligence,
+#impact {
+  display: none !important;
+}
 
-  .ldi-question,
-  .ldi-explanation{
-    font-size:10px;
-  }
+/* Let the chart occupy the freed space */
 
-  .ldi-movement{
-    font-size:20px;
-  }
-
-  .ldi-movement-primary{
-    font-size:23px;
-  }
-
-  .ldi-sequence{
-    grid-template-columns:
-      minmax(0,1fr) 12px
-      minmax(0,1fr) 12px
-      minmax(0,1fr) 12px
-      minmax(0,1fr) 12px
-      minmax(0,1.18fr);
-  }
-
-  .ldi-module{
-    padding-left:8px;
-    padding-right:8px;
-  }
+#app {
+  grid-template-rows: auto minmax(0, 1fr);
 }
