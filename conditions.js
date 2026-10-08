@@ -1,1071 +1,552 @@
-// SCENARIO CONDITIONS — event-sensitive leverage/timing layer.
-// Pure overlay: baseline series/window are never mutated.
-// Smartsheet/ArcGIS remains the source of modeled/adjusted/verified X/Y impacts.
 
-const DAY_MS = 86400000;
-const PANEL_ID = 'conditionsPanel';
-const TAB_ID = 'conditionsTab';
+// SCENARIO CONDITIONS
+// Standalone browser overlay for app.js.
+// Smartsheet MODELED/ACTIVE values already include diminishing weights.
 
-const CONDITION_DEFS = [
-  {
-    key:'rollover',
-    label:'BUILDING ROLLOVER EXPOSURE',
-    token:'ROLLOVER EXPOSURE'
-  },
-  {
-    key:'capital',
-    label:'CAPITAL / REFINANCING PRESSURE',
-    token:'CAPITAL PRESSURE'
-  },
-  {
-    key:'market',
-    label:'MARKET COMPETITIVE PRESSURE',
-    token:'MARKET PRESSURE'
-  },
-  {
-    key:'alternative',
-    label:'ALTERNATIVE EXECUTABILITY',
-    token:'ALTERNATIVE EXECUTABILITY'
-  },
-  {
-    key:'requirement',
-    label:'REQUIREMENT FLEXIBILITY',
-    token:'REQUIREMENT FLEXIBILITY'
-  }
+const DAY = 86400000;
+
+const DEFS = [
+  { key: 'capital', label: 'CAPITAL / REFINANCING PRESSURE', token: 'CAPITAL PRESSURE', x: -120, y: 12 },
+  { key: 'rollover', label: 'BUILDING ROLLOVER EXPOSURE', token: 'ROLLOVER EXPOSURE', x: -90, y: 10 },
+  { key: 'alternative', label: 'ALTERNATIVE EXECUTABILITY', token: 'ALTERNATIVE EXECUTABILITY', x: -75, y: 10 },
+  { key: 'market', label: 'MARKET COMPETITIVE PRESSURE', token: 'MARKET PRESSURE', x: -60, y: 8 },
+  { key: 'requirement', label: 'REQUIREMENT FLEXIBILITY', token: 'REQUIREMENT FLEXIBILITY', x: -45, y: 6 }
 ];
 
-let state = Object.fromEntries(
-  CONDITION_DEFS.map(
-    d => [d.key, 0]
-  )
-);
+const levels = Object.fromEntries(DEFS.map(d => [d.key, 0]));
 
-let collapsed = false;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const bounded = v => clamp(v, 0, 100);
 
+const numeric = (v, fallback = 0) =>
+  v === null || v === undefined || v === ''
+    ? fallback
+    : Number.isFinite(Number(v)) ? Number(v) : fallback;
 
-function clamp(v,a,b){
-  return Math.max(
-    a,
-    Math.min(b,v)
-  );
-}
+const has = (row, d) =>
+  String(row.conditionAdjuster ?? '').toUpperCase().includes(d.token);
 
+const active = () => DEFS.some(d => levels[d.key] !== 0);
 
-function clamp100(v){
-  return clamp(
-    Number.isFinite(+v)
-      ?+v
-      :0,
-    0,
-    100
-  );
-}
+const fmt = d =>
+  `${String(d.getMonth() + 1).padStart(2, '0')}/` +
+  `${String(d.getDate()).padStart(2, '0')}/` +
+  `${String(d.getFullYear()).slice(-2)}`;
 
+const days = (a, b) => Math.round((+b - +a) / DAY);
 
-function finite(v,fallback=0){
+// Resolve workbook hierarchy:
+// ACTIVE > VERIFIED > ADJUSTED > MODELED
 
-  const n=+v;
+function resolved(row, axis) {
+  for (const suffix of ['Active', 'Verified', 'Adjusted', 'Modeled']) {
+    const v = row[`condition${axis}${suffix}`];
 
-  return Number.isFinite(n)
-    ?n
-    :fallback;
-}
-
-
-function fmtDate(d){
-
-  return (
-    `${String(d.getMonth()+1).padStart(2,'0')}/`+
-    `${String(d.getDate()).padStart(2,'0')}/`+
-    `${String(d.getFullYear()).slice(-2)}`
-  );
-}
-
-
-function dayDiff(a,b){
-
-  return Math.round(
-    (+b-+a)/DAY_MS
-  );
-}
-
-
-function normText(v){
-
-  return String(v??'')
-    .trim()
-    .toUpperCase();
-}
-
-
-function hasCondition(row,def){
-
-  return normText(
-    row.conditionAdjuster
-  ).includes(
-    def.token
-  );
-}
-
-
-function scenarioActive(){
-
-  return Object.values(state)
-    .some(
-      v=>Math.abs(v)>1e-9
-    );
-}
-
-
-function rowStateValue(row,axis){
-
-  const active=
-    finite(
-      row[`condition${axis}Active`],
-      NaN
-    );
-
-  if(Number.isFinite(active)){
-    return active;
+    if (
+      v !== null &&
+      v !== undefined &&
+      v !== '' &&
+      Number.isFinite(Number(v))
+    ) {
+      return Number(v);
+    }
   }
 
+  return 0;
+}
 
-  const verified=
-    finite(
-      row[`condition${axis}Verified`],
-      NaN
-    );
+// Reconstruct each condition's share of the already-weighted
+// workbook total. Do not apply diminishing weighting twice.
 
-  if(Number.isFinite(verified)){
-    return verified;
-  }
+function impacts(row) {
+  const matched = DEFS.filter(d => has(row, d));
 
+  if (!matched.length) return { x: 0, y: 0 };
 
-  const adjusted=
-    finite(
-      row[`condition${axis}Adjusted`],
-      NaN
-    );
+  const weights = matched.map((d, i) => ({
+    d,
+    weight: Math.pow(0.5, i)
+  }));
 
-  if(Number.isFinite(adjusted)){
-    return adjusted;
-  }
+  const rawX = weights.reduce(
+    (s, p) => s + p.d.x * p.weight, 0
+  );
 
+  const rawY = weights.reduce(
+    (s, p) => s + p.d.y * p.weight, 0
+  );
 
-  return finite(
-    row[`condition${axis}Modeled`],
+  const activeX = resolved(row, 'X');
+  const activeY = resolved(row, 'Y');
+
+  const deltaX = weights.reduce(
+    (s, p) =>
+      s + p.d.x * p.weight * levels[p.d.key] / 100,
     0
   );
-}
 
-
-// Slider is a scenario multiplier around the
-// workbook-resolved ACTIVE condition effect.
-//
-// 0 = exact workbook/model baseline.
-// +100 = add one full active condition effect.
-// -100 = reverse/remove one full active effect
-// for sensitivity testing.
-//
-// IMPORTANT:
-// Smartsheet has ALREADY applied the diminishing
-// weighting distribution in CONDITION_X_MODELED
-// and CONDITION_Y_MODELED.
-// DO NOT reapply diminishing weights here.
-
-function conditionMultiplier(key){
-
-  return clamp(
-    finite(state[key],0)/100,
-    -1,
-    1
+  const deltaY = weights.reduce(
+    (s, p) =>
+      s + p.d.y * p.weight * levels[p.d.key] / 100,
+    0
   );
-}
 
-
-function rowScenarioImpact(row){
-
-  const matched=
-    CONDITION_DEFS.filter(
-      def=>hasCondition(row,def)
-    );
-
-
-  if(!matched.length){
-
-    return{
-      xDays:0,
-      yPoints:0
-    };
-  }
-
-
-  const xBase=
-    rowStateValue(
-      row,
-      'X'
-    );
-
-  const yBase=
-    rowStateValue(
-      row,
-      'Y'
-    );
-
-
-  const n=
-    matched.length;
-
-
-  let xDays=0;
-  let yPoints=0;
-
-
-  for(const def of matched){
-
-    const m=
-      conditionMultiplier(
-        def.key
-      );
-
-
-    // The row-level modeled/active impact has
-    // already been diminishing-weighted upstream.
-    //
-    // Equal allocation here exists ONLY so the
-    // individual UX controls can perturb the
-    // appropriate applicable rows without
-    // double-weighting the workbook mathematics.
-
-    xDays+=
-      (xBase/n)*m;
-
-    yPoints+=
-      (yBase/n)*m;
-  }
-
-
-  return{
-    xDays,
-    yPoints
+  return {
+    x: rawX !== 0 ? deltaX * activeX / rawX : 0,
+    y: rawY !== 0 ? deltaY * activeY / rawY : 0
   };
 }
 
+// Interpolate row-level condition effects across Chart_dates.
 
-function interpolateImpact(
-  date,
-  data,
-  axis
-){
+function sampled(data, at, axis) {
+  const rows = data
+    .filter(r => Number.isFinite(+r.date))
+    .map(r => ({
+      t: +r.date,
+      v: impacts(r)[axis]
+    }))
+    .sort((a, b) => a.t - b.t);
 
-  const rows=
-    data
-      .filter(
-        r=>
-          r.date instanceof Date &&
-          Number.isFinite(+r.date)
-      )
-      .map(
-        r=>({
-          date:+r.date,
-          impact:
-            rowScenarioImpact(r)[axis]
-        })
-      )
-      .sort(
-        (a,b)=>a.date-b.date
-      );
+  if (!rows.length) return 0;
 
+  const t = +at;
 
-  if(!rows.length){
+  if (t < rows[0].t || t > rows[rows.length - 1].t) {
     return 0;
   }
 
+  if (t === rows[0].t) return rows[0].v;
 
-  const ms=+date;
+  let lo = 0;
+  let hi = rows.length - 1;
 
+  while (hi - lo > 1) {
+    const m = (lo + hi) >> 1;
 
-  if(ms<=rows[0].date){
-    return rows[0].impact;
+    if (rows[m].t <= t) lo = m;
+    else hi = m;
   }
 
+  const a = rows[lo];
+  const b = rows[hi];
 
-  if(ms>=rows.at(-1).date){
-    return rows.at(-1).impact;
-  }
-
-
-  let lo=0;
-  let hi=rows.length-1;
-
-
-  while(hi-lo>1){
-
-    const mid=
-      (lo+hi)>>1;
-
-
-    if(rows[mid].date<=ms){
-      lo=mid;
-    }else{
-      hi=mid;
-    }
-  }
-
-
-  const a=rows[lo];
-  const b=rows[hi];
-
-  const t=
-    (ms-a.date)/
-    (
-      (b.date-a.date)||
-      1
-    );
-
-
-  return(
-    a.impact+
-    (
-      b.impact-a.impact
-    )*t
-  );
+  return a.v + (b.v - a.v) * (t - a.t) / ((b.t - a.t) || 1);
 }
 
+// Interpolate original, immutable curve.
 
-function interpolateSeries(
-  series,
-  ms,
-  key
-){
+function valueAt(series, t, key) {
+  if (t <= +series[0].date) return series[0][key];
 
-  if(ms<=+series[0].date){
-
-    return finite(
-      series[0][key]
-    );
+  if (t >= +series[series.length - 1].date) {
+    return series[series.length - 1][key];
   }
 
+  let lo = 0;
+  let hi = series.length - 1;
 
-  if(ms>=+series.at(-1).date){
+  while (hi - lo > 1) {
+    const m = (lo + hi) >> 1;
 
-    return finite(
-      series.at(-1)[key]
-    );
+    if (+series[m].date <= t) lo = m;
+    else hi = m;
   }
 
+  const a = series[lo];
+  const b = series[hi];
 
-  let lo=0;
-  let hi=series.length-1;
-
-
-  while(hi-lo>1){
-
-    const mid=
-      (lo+hi)>>1;
-
-
-    if(+series[mid].date<=ms){
-      lo=mid;
-    }else{
-      hi=mid;
-    }
-  }
-
-
-  const a=series[lo];
-  const b=series[hi];
-
-
-  const t=
-    (
-      ms-+a.date
-    )/
-    (
-      (+b.date-+a.date)||
-      1
-    );
-
-
-  return(
-    finite(a[key])+
-    (
-      finite(b[key])-
-      finite(a[key])
-    )*t
-  );
+  return a[key] +
+    (b[key] - a[key]) *
+    (t - +a.date) /
+    ((+b.date - +a.date) || 1);
 }
 
+// Derive scenario opportunity window.
+// Baseline window remains unchanged when no scenario is active.
 
-function deriveWindow(
-  series,
-  baseWindow
-){
+function deriveWindow(series, baseWindow) {
+  const minDate = +baseWindow.start;
+  const maxDate = +baseWindow.end;
 
-  if(!series.length){
+  const within = series.filter(
+    p =>
+      +p.date >= minDate - 180 * DAY &&
+      +p.date <= maxDate + 180 * DAY
+  );
 
-    return{
-      start:
-        new Date(
-          +baseWindow.start
-        ),
-
-      end:
-        new Date(
-          +baseWindow.end
-        )
+  if (within.length < 3) {
+    return {
+      start: new Date(minDate),
+      end: new Date(maxDate)
     };
   }
 
+  const values = within.map(p => p.plotTenant);
 
-  const values=
-    series
-      .map(
-        p=>finite(p.plotTenant)
-      )
-      .filter(
-        Number.isFinite
-      );
+  const hi = Math.max(...values);
+  const lo = Math.min(...values);
 
-
-  const peak=
-    Math.max(
-      ...values
-    );
-
-
-  const floor=
-    Math.min(
-      ...values
-    );
-
-
-  // Opportunity threshold.
-  //
-  // This intentionally derives the scenario window
-  // FROM the resulting leverage geometry.
-  //
-  // Therefore the scenario window is capable of:
-  // - shifting earlier
-  // - shifting later
-  // - compressing
-  // - expanding
-  //
-  // without changing canonical Chart_dates.
-
-  const threshold=
-    peak-
-    (
-      peak-floor
-    )*.22;
-
-
-  const eligible=
-    series.filter(
-      p=>
-        finite(
-          p.plotTenant
-        )>=threshold
-    );
-
-
-  if(eligible.length<2){
-
-    return{
-      start:
-        new Date(
-          +baseWindow.start
-        ),
-
-      end:
-        new Date(
-          +baseWindow.end
-        )
+  if (hi - lo < 0.01) {
+    return {
+      start: new Date(minDate),
+      end: new Date(maxDate)
     };
   }
 
+  const threshold = hi - 0.22 * (hi - lo);
 
-  return{
-    start:
-      new Date(
-        +eligible[0].date
-      ),
+  const peakIndex = within.findIndex(
+    p => p.plotTenant === hi
+  );
 
-    end:
-      new Date(
-        +eligible.at(-1).date
-      )
+  let left = peakIndex;
+  let right = peakIndex;
+
+  while (
+    left > 0 &&
+    within[left - 1].plotTenant >= threshold
+  ) {
+    left--;
+  }
+
+  while (
+    right < within.length - 1 &&
+    within[right + 1].plotTenant >= threshold
+  ) {
+    right++;
+  }
+
+  if (right <= left) {
+    return {
+      start: new Date(minDate),
+      end: new Date(maxDate)
+    };
+  }
+
+  return {
+    start: new Date(+within[left].date),
+    end: new Date(+within[right].date)
   };
 }
 
+// Main scenario calculation.
 
 function applyConditionScenario({
   baselineP,
   data,
   baseWindow
-}){
+}) {
+  if (!baselineP?.length) {
+    throw new Error('Scenario requires a baseline curve.');
+  }
 
-  // IMMUTABLE COPY.
-  //
-  // The existing modeled curve is NEVER modified.
+  const original = baselineP.map(p => ({
+    ...p,
+    date: new Date(+p.date)
+  }));
 
-  const baseSeries=
-    baselineP.map(
-      p=>({
-        ...p,
-        date:
-          new Date(
-            +p.date
-          )
-      })
+  const peakOf = s =>
+    s.reduce((a, b) =>
+      b.plotTenant > a.plotTenant ? b : a
     );
 
+  // Exact baseline when controls are untouched.
 
-  // No slider movement =
-  // EXACT EXISTING MODEL.
+  if (!active()) {
+    const peak = peakOf(original);
 
-  if(!scenarioActive()){
-
-    const peakPoint=
-      baseSeries.reduce(
-        (a,b)=>
-          finite(b.plotTenant)>
-          finite(a.plotTenant)
-            ?b
-            :a
-      );
-
-
-    return{
-      active:false,
-
-      series:
-        baseSeries,
-
-      window:{
-        start:
-          new Date(
-            +baseWindow.start
-          ),
-
-        end:
-          new Date(
-            +baseWindow.end
-          )
+    return {
+      active: false,
+      series: original,
+      window: {
+        start: new Date(+baseWindow.start),
+        end: new Date(+baseWindow.end)
       },
-
-      peak:
-        clamp100(
-          peakPoint.plotTenant
-        ),
-
-      peakDate:
-        new Date(
-          +peakPoint.date
-        ),
-
-      shiftDays:0,
-
-      widthDeltaDays:0
+      peak: bounded(peak.plotTenant),
+      peakDate: new Date(+peak.date),
+      shiftDays: 0,
+      widthDeltaDays: 0
     };
   }
 
+  const t0 = +original[0].date;
+  const t1 = +original[original.length - 1].date;
 
-  const xMin=
-    +baseSeries[0].date;
+  const series = original.map(p => {
+    const dx = sampled(data, p.date, 'x');
+    const dy = sampled(data, p.date, 'y');
 
-  const xMax=
-    +baseSeries.at(-1).date;
+    // X impact moves the influence in time.
+    // Canonical Chart_dates never change.
 
-
-  const series=
-    baseSeries.map(
-      p=>{
-
-        const xDays=
-          interpolateImpact(
-            p.date,
-            data,
-            'xDays'
-          );
-
-
-        const yPoints=
-          interpolateImpact(
-            p.date,
-            data,
-            'yPoints'
-          );
-
-
-        // X LOGIC
-        // -----------------------------------------
-        //
-        // Negative X means leverage manifests EARLIER.
-        //
-        // We DO NOT alter Chart_dates.
-        //
-        // Instead we sample the immutable baseline
-        // at a temporally displaced location.
-        //
-        // This shifts the leverage influence itself,
-        // not the canonical transaction dates.
-
-        const sourceMs=
-          clamp(
-            +p.date-
-            (
-              xDays*
-              DAY_MS
-            ),
-            xMin,
-            xMax
-          );
-
-
-        const tenantBase=
-          interpolateSeries(
-            baseSeries,
-            sourceMs,
-            'plotTenant'
-          );
-
-
-        const landlordBase=
-          interpolateSeries(
-            baseSeries,
-            sourceMs,
-            'plotLandlord'
-          );
-
-
-        // Y LOGIC
-        // -----------------------------------------
-        //
-        // ABSOLUTE RULE:
-        //
-        // Tenant leverage can NEVER exceed 100
-        // and can NEVER fall below 0.
-        //
-        // Same physical boundary is maintained
-        // for landlord leverage.
-
-        return{
-          ...p,
-
-          plotTenant:
-            clamp100(
-              tenantBase+
-              yPoints
-            ),
-
-          plotLandlord:
-            clamp100(
-              landlordBase-
-              yPoints
-            )
-        };
-      }
+    const source = clamp(
+      +p.date - dx * DAY,
+      t0,
+      t1
     );
 
+    // Both leverage curves remain within 0–100.
 
-  // Recalculate the optimal execution window
-  // FROM the transformed scenario curve.
+    return {
+      ...p,
+      plotTenant: bounded(
+        valueAt(original, source, 'plotTenant') + dy
+      ),
+      plotLandlord: bounded(
+        valueAt(original, source, 'plotLandlord') - dy
+      )
+    };
+  });
 
-  const window=
-    deriveWindow(
-      series,
-      baseWindow
-    );
+  const window = deriveWindow(series, baseWindow);
+  const peak = peakOf(series);
 
-
-  const peakPoint=
-    series.reduce(
-      (a,b)=>
-        finite(b.plotTenant)>
-        finite(a.plotTenant)
-          ?b
-          :a
-    );
-
-
-  const baseWidth=
-    dayDiff(
-      baseWindow.start,
-      baseWindow.end
-    );
-
-
-  const scenarioWidth=
-    dayDiff(
-      window.start,
-      window.end
-    );
-
-
-  return{
-    active:true,
-
+  return {
+    active: true,
     series,
-
     window,
-
-    peak:
-      clamp100(
-        peakPoint.plotTenant
-      ),
-
-    peakDate:
-      new Date(
-        +peakPoint.date
-      ),
-
-    shiftDays:
-      dayDiff(
-        baseWindow.start,
-        window.start
-      ),
-
+    peak: bounded(peak.plotTenant),
+    peakDate: new Date(+peak.date),
+    shiftDays: days(baseWindow.start, window.start),
     widthDeltaDays:
-      scenarioWidth-
-      baseWidth
+      days(window.start, window.end) -
+      days(baseWindow.start, baseWindow.end)
   };
 }
 
+// Reset all controls.
 
-function resetConditionScenario(
-  rerender
-){
-
-  for(
-    const def of CONDITION_DEFS
-  ){
-
-    state[def.key]=0;
+function resetConditionScenario(rerender) {
+  for (const d of DEFS) {
+    levels[d.key] = 0;
   }
 
+  for (const d of DEFS) {
+    const input = document.getElementById(
+      `condition_${d.key}`
+    );
 
-  syncPanel();
+    const value = document.getElementById(
+      `condition_${d.key}_value`
+    );
 
-
-  if(
-    typeof rerender==='function'
-  ){
-
-    rerender();
+    if (input) input.value = '0';
+    if (value) value.textContent = 'MODELED';
   }
+
+  if (typeof rerender === 'function') rerender();
 }
 
-
-function syncPanel(){
-
-  for(
-    const def of CONDITION_DEFS
-  ){
-
-    const input=
-      document.getElementById(
-        `condition_${def.key}`
-      );
-
-
-    const value=
-      document.getElementById(
-        `condition_${def.key}_value`
-      );
-
-
-    if(input){
-
-      input.value=
-        String(
-          state[def.key]
-        );
-    }
-
-
-    if(value){
-
-      value.textContent=
-        state[def.key]===0
-          ?'MODELED'
-          :(
-              `${state[def.key]>0?'+':''}`+
-              `${state[def.key]}%`
-            );
-    }
-  }
-}
-
+// Create a visible panel with its own fallback styling.
+// Does not require new styles.css rules.
 
 function ensureConditionsPanel({
   mount,
   rerender,
   getSummary
-}={}){
+} = {}) {
+  const host =
+    mount ||
+    document.getElementById('conditionsMount') ||
+    document.getElementById('wrap');
 
-  const host=
-    mount||
-    document.getElementById(
-      'conditionsMount'
-    )||
-    document.getElementById(
-      'wrap'
-    );
+  if (!host) return null;
 
+  const existing = document.getElementById(
+    'conditionsPanel'
+  );
 
-  if(!host){
-    return null;
+  if (existing) return existing;
+
+  if (getComputedStyle(host).position === 'static') {
+    host.style.position = 'relative';
   }
 
+  const panel = document.createElement('aside');
 
-  let panel=
-    document.getElementById(
-      PANEL_ID
-    );
+  panel.id = 'conditionsPanel';
+  panel.className = 'conditions-panel';
 
+  Object.assign(panel.style, {
+    position: 'absolute',
+    top: '12px',
+    left: '12px',
+    zIndex: '100',
+    width: '310px',
+    maxHeight: 'calc(100% - 24px)',
+    overflowY: 'auto',
+    padding: '12px',
+    background: 'rgba(27,29,44,.98)',
+    border: '1px solid #FFDF00',
+    borderRadius: '7px',
+    color: '#fff',
+    fontFamily: 'Gotham,Arial,sans-serif',
+    boxShadow: '0 10px 30px rgba(0,0,0,.35)'
+  });
 
-  if(panel){
-    return panel;
+  const tab = document.createElement('button');
+
+  tab.id = 'conditionsTab';
+  tab.className = 'conditions-tab';
+  tab.textContent = '▶ CONDITIONS';
+
+  Object.assign(tab.style, {
+    position: 'absolute',
+    top: '12px',
+    left: '0',
+    zIndex: '101',
+    display: 'none',
+    background: '#1B1D2C',
+    border: '1px solid #FFDF00',
+    color: '#FFDF00',
+    padding: '9px',
+    cursor: 'pointer'
+  });
+
+  const head = document.createElement('div');
+
+  Object.assign(head.style, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px'
+  });
+
+  const title = document.createElement('strong');
+  title.textContent = 'SCENARIO CONDITIONS';
+  title.style.color = '#FFDF00';
+
+  const close = document.createElement('button');
+  close.textContent = '◀';
+  close.title = 'Collapse panel';
+
+  head.append(title, close);
+  panel.appendChild(head);
+
+  // Five condition sliders.
+
+  for (const d of DEFS) {
+    const row = document.createElement('div');
+
+    row.className = 'condition-row';
+    row.style.marginBottom = '12px';
+
+    const label = document.createElement('div');
+
+    Object.assign(label.style, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: '8px',
+      fontSize: '11px'
+    });
+
+    const name = document.createElement('span');
+    name.textContent = d.label;
+
+    const value = document.createElement('strong');
+    value.id = `condition_${d.key}_value`;
+    value.textContent = 'MODELED';
+    value.style.color = '#FFDF00';
+
+    label.append(name, value);
+
+    const slider = document.createElement('input');
+
+    slider.type = 'range';
+    slider.id = `condition_${d.key}`;
+    slider.min = '-100';
+    slider.max = '100';
+    slider.step = '1';
+    slider.value = '0';
+    slider.style.width = '100%';
+    slider.style.accentColor = '#238291';
+
+    slider.addEventListener('input', () => {
+      levels[d.key] = Number(slider.value);
+
+      value.textContent =
+        levels[d.key] === 0
+          ? 'MODELED'
+          : `${levels[d.key] > 0 ? '+' : ''}${levels[d.key]}%`;
+
+      rerender?.();
+    });
+
+    row.append(label, slider);
+    panel.appendChild(row);
   }
 
+  // Scenario summary.
 
-  const tab=
-    document.createElement(
-      'button'
-    );
+  const summary = document.createElement('div');
 
+  summary.id = 'conditionImpact';
 
-  tab.id=
-    TAB_ID;
+  summary.style.cssText =
+    'font-size:11px;' +
+    'line-height:1.6;' +
+    'border-top:1px solid #79828C;' +
+    'padding-top:8px;' +
+    'margin-top:4px';
 
-  tab.className=
-    'conditions-tab';
+  panel.appendChild(summary);
 
-  tab.textContent=
-    'CONDITIONS';
+  const reset = document.createElement('button');
 
+  reset.textContent = 'RESET TO MODELED';
 
-  panel=
-    document.createElement(
-      'aside'
-    );
+  reset.style.cssText =
+    'width:100%;margin-top:10px;cursor:pointer';
 
+  reset.addEventListener('click', () =>
+    resetConditionScenario(rerender)
+  );
 
-  panel.id=
-    PANEL_ID;
+  panel.appendChild(reset);
 
-  panel.className=
-    'conditions-panel';
+  panel.refreshSummary = () => {
+    const s = getSummary?.();
 
-
-  panel.innerHTML=
-    '<div class="conditions-head">'+
-      '<strong>SCENARIO CONDITIONS</strong>'+
-      '<button type="button" class="conditions-collapse" aria-label="Collapse conditions">◀</button>'+
-    '</div>'+
-    '<div class="conditions-body"></div>'+
-    '<div class="condition-impact" id="conditionImpact"></div>'+
-    '<button type="button" class="conditions-reset">RESET TO MODELED</button>';
-
-
-  const body=
-    panel.querySelector(
-      '.conditions-body'
-    );
-
-
-  for(
-    const def of CONDITION_DEFS
-  ){
-
-    const row=
-      document.createElement(
-        'div'
-      );
-
-
-    row.className=
-      'condition-row';
-
-
-    row.innerHTML=
-      '<div class="condition-row-head">'+
-        `<span>${def.label}</span>`+
-        `<strong id="condition_${def.key}_value">MODELED</strong>`+
-      '</div>'+
-      `<input class="condition-slider" id="condition_${def.key}" type="range" min="-100" max="100" step="1" value="0">`;
-
-
-    const input=
-      row.querySelector(
-        'input'
-      );
-
-
-    input.addEventListener(
-      'input',
-      ()=>{
-
-        state[def.key]=
-          +input.value;
-
-
-        syncPanel();
-
-
-        if(
-          typeof rerender==='function'
-        ){
-
-          rerender();
-        }
-      }
-    );
-
-
-    body.appendChild(
-      row
-    );
-  }
-
-
-  const refreshSummary=
-    ()=>{
-
-      const el=
-        document.getElementById(
-          'conditionImpact'
-        );
-
-
-      if(!el){
-        return;
-      }
-
-
-      const s=
-        typeof getSummary==='function'
-          ?getSummary()
-          :null;
-
-
-      if(!s){
-
-        el.textContent=
-          scenarioActive()
-            ?'SCENARIO ACTIVE'
-            :'BASE MODEL ACTIVE';
-
-        return;
-      }
-
-
-      el.innerHTML=
-        '<div>'+
-          '<span>PEAK</span>'+
-          `<strong>${Number.isFinite(+s.peak)?(+s.peak).toFixed(1):'—'}</strong>`+
-        '</div>'+
-        '<div>'+
-          '<span>WINDOW</span>'+
-          `<strong>${s.window?`${fmtDate(s.window.start)} – ${fmtDate(s.window.end)}`:'—'}</strong>`+
-        '</div>'+
-        '<div>'+
-          '<span>WIDTH Δ</span>'+
-          `<strong>${Number.isFinite(+s.widthDeltaDays)?`${s.widthDeltaDays>0?'+':''}${s.widthDeltaDays} DAYS`:'—'}</strong>`+
-        '</div>';
-    };
-
-
-  panel.refreshSummary=
-    refreshSummary;
-
-
-  panel
-    .querySelector(
-      '.conditions-reset'
-    )
-    .addEventListener(
-      'click',
-      ()=>{
-
-        resetConditionScenario(
-          ()=>{
-
-            if(
-              typeof rerender==='function'
-            ){
-
-              rerender();
-            }
-          }
-        );
-      }
-    );
-
-
-  panel
-    .querySelector(
-      '.conditions-collapse'
-    )
-    .addEventListener(
-      'click',
-      ()=>{
-
-        collapsed=true;
-
-        panel.classList.add(
-          'collapsed'
-        );
-
-        tab.classList.add(
-          'visible'
-        );
-      }
-    );
-
-
-  tab.addEventListener(
-    'click',
-    ()=>{
-
-      collapsed=false;
-
-      panel.classList.remove(
-        'collapsed'
-      );
-
-      tab.classList.remove(
-        'visible'
-      );
+    if (!s) {
+      summary.textContent = 'BASE MODEL ACTIVE';
+      return;
     }
-  );
 
+    const delta = s.widthDeltaDays;
 
-  host.append(
-    tab,
-    panel
-  );
+    summary.textContent =
+      `${s.active ? 'SCENARIO ACTIVE' : 'BASE MODEL ACTIVE'}` +
+      ` | PEAK ${s.peak.toFixed(1)}` +
+      ` | WINDOW ${fmt(s.window.start)} – ${fmt(s.window.end)}` +
+      ` | WIDTH ${delta > 0 ? '+' : ''}${delta} DAYS`;
+  };
 
+  // Collapse retains the active scenario.
 
-  syncPanel();
-  refreshSummary();
+  close.addEventListener('click', () => {
+    panel.style.display = 'none';
+    tab.style.display = 'block';
+  });
 
+  tab.addEventListener('click', () => {
+    panel.style.display = 'block';
+    tab.style.display = 'none';
+  });
+
+  host.append(tab, panel);
+
+  panel.refreshSummary();
 
   return panel;
 }
 
-
-function getConditionScenarioState(){
-
-  return{
-    ...state
-  };
+function getConditionScenarioState() {
+  return { ...levels };
 }
 
-
 export {
-  CONDITION_DEFS,
+  DEFS as CONDITION_DEFS,
   ensureConditionsPanel,
   applyConditionScenario,
   resetConditionScenario,
