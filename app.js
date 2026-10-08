@@ -457,9 +457,17 @@ const ph=H-m.t-m.b;
 const x0=+P[0].date;
 const x1=+P.at(-1).date;
 
-/* ABSOLUTE LEVERAGE SCALE */
-const min=0;
-const max=100;
+/* DYNAMIC LEVERAGE SCALE WITH BREATHING ROOM */
+const values = P.flatMap(d => [d.plotTenant, d.plotLandlord])
+  .filter(Number.isFinite);
+
+const dataMin = Math.min(...values);
+const dataMax = Math.max(...values);
+
+const padding = Math.max(5, (dataMax - dataMin) * 0.10);
+
+const min = Math.max(0, Math.floor((dataMin - padding) / 5) * 5);
+const max = Math.min(100, Math.ceil((dataMax + padding) / 5) * 5);
 
 const x=d=>m.l+((+d-x0)/(x1-x0))*pw;
 const y=v=>m.t+((max-v)/(max-min))*ph;
@@ -468,7 +476,7 @@ const base=y(min);
 svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
 svg.innerHTML='';
 
-for(let v=0;v<=100;v+=5){
+for(let v=min;v<=max;v+=5){
 svg.appendChild(ns('line',{
 x1:m.l,
 y1:y(v),
