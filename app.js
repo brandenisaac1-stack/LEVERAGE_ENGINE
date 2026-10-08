@@ -330,6 +330,12 @@ selected=DATA.findIndex(d=>String(d.iteration||'').trim()===CFG.selected.trim())
 select.value=String(selected);
 }
 
+ensureConditionsPanel({
+  mount: wrap,
+  rerender: render,
+  getSummary: () => LAST_CONDITION_SCENARIO
+});
+
 render();
 updateImpact();
 renderLiveIntelligence();
@@ -869,23 +875,11 @@ npv.textContent=
 }
 
 function choose(i){
-selected=+i;
-select.value=String(selected);
-ensureConditionsPanel({
-  mount:wrap,
-
-  rerender:()=>{
-    render();
-  },
-
-  getSummary:()=>{
-    return LAST_CONDITION_SCENARIO;
-  }
-});
-
-render();
-updateImpact();
-renderLiveIntelligence();
+  selected=+i;
+  select.value=String(selected);
+  render();
+  updateImpact();
+  renderLiveIntelligence();
 }
 
 $('login').onclick=signIn;
