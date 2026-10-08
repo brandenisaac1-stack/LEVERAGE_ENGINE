@@ -20,6 +20,15 @@ const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),statu
 let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 let LAST_CONDITION_SCENARIO=null;
 
+function updateScenarioTitle(){
+  const title=$('scenarioTitle');
+  if(!title)return;
+
+  title.textContent=$('restructure')?.checked
+    ? 'EARLY RESTRUCTURE SCENARIO'
+    : 'RELOCATION SCENARIO';
+}
+
 function scenarioEconomics(baseDelta){
 return Number.isFinite(+baseDelta)?+baseDelta:NaN;
 }
@@ -418,6 +427,8 @@ return;
 const baseWin=windowBounds();
 const restructureMode=!!$('restructure')?.checked;
 
+updateScenarioTitle();
+
 /* EXISTING MODEL IS IMMUTABLE */
 const baselineP=shapedSeries(DATA,baseWin);
 
@@ -604,7 +615,8 @@ leaseExpiration:leaseExpiration(),
 svg,
 ns,
 txt,
-restructureMode
+restructureMode,
+mapDate:scenario.mapDate
 });
 }
 
