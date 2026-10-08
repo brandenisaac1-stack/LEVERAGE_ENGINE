@@ -1,25 +1,7 @@
-
 // ============================================================
 // SAVILLS LEASE LEVERAGE ENGINE
 // SCENARIO CONDITIONS — V2
-//
-// Standalone module.
-// No changes to curves.js, process.js, restructure.js,
-// annotations.js, or the existing baseline calculations.
-//
-// Existing app.js imports:
-//   ensureConditionsPanel
-//   applyConditionScenario
-//
-// Also exports:
-//   resetConditionScenario
-//   getConditionScenarioState
-//
-// Slider zero = exact modeled baseline.
-// All calculations restart from immutable baseline data.
-//
-// Workbook MODELED/ACTIVE values already incorporate
-// diminishing condition weights.
+// COMPLETE REPLACEMENT
 // ============================================================
 
 const DAY_MS = 86400000;
@@ -77,14 +59,19 @@ let latestScenario = null;
 // ============================================================
 
 function clamp(value, minimum, maximum) {
-  return Math.max(
-    minimum,
-    Math.min(maximum, value)
-  );
+  return Math.max(minimum, Math.min(maximum, value));
 }
 
+function clamp100(value) {
+  const n = Number(value);
+  return clamp(Number.isFinite(n) ? n : 0, 0, 100);
+}
 
-function applyBoundedLeverage(base, adjustment, sensitivity = 25) {
+function applyBoundedLeverage(
+  base,
+  adjustment,
+  sensitivity = 25
+) {
   const b = clamp100(base);
   const a = Number.isFinite(adjustment) ? adjustment : 0;
 
@@ -103,7 +90,6 @@ function applyBoundedLeverage(base, adjustment, sensitivity = 25) {
   );
 }
 
-
 function finite(value, fallback = 0) {
   if (
     value === null ||
@@ -113,54 +99,47 @@ function finite(value, fallback = 0) {
     return fallback;
   }
 
-  const number = Number(value);
-
-  return Number.isFinite(number)
-    ? number
-    : fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 function validDate(value) {
-  const date = value instanceof Date
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const d = value instanceof Date
     ? new Date(+value)
     : new Date(value);
 
-  return Number.isFinite(+date)
-    ? date
-    : null;
+  return Number.isFinite(+d) ? d : null;
 }
 
 function fmtDate(value) {
-  const date = validDate(value);
-
-  if (!date) return "—";
+  const d = validDate(value);
+  if (!d) return "—";
 
   return (
-    String(date.getMonth() + 1).padStart(2, "0") +
+    String(d.getMonth() + 1).padStart(2, "0") +
     "/" +
-    String(date.getDate()).padStart(2, "0") +
+    String(d.getDate()).padStart(2, "0") +
     "/" +
-    String(date.getFullYear()).slice(-2)
+    String(d.getFullYear()).slice(-2)
   );
 }
 
 function dayDifference(a, b) {
-  return Math.round(
-    (+b - +a) / DAY_MS
-  );
+  return Math.round((+b - +a) / DAY_MS);
 }
 
 function smoothstep(value) {
   const t = clamp(value, 0, 1);
-
   return t * t * (3 - 2 * t);
 }
 
 function smootherstep(value) {
   const t = clamp(value, 0, 1);
-
-  return t * t * t *
-    (t * (t * 6 - 15) + 10);
+  return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 function scenarioActive() {
@@ -170,27 +149,17 @@ function scenarioActive() {
 }
 
 function normalizeText(value) {
-  return String(value ?? "")
-    .trim()
-    .toUpperCase();
+  return String(value ?? "").trim().toUpperCase();
 }
 
 function hasCondition(row, definition) {
-  return normalizeText(
-    row.conditionAdjuster
-  ).includes(definition.token);
+  return normalizeText(row.conditionAdjuster)
+    .includes(definition.token);
 }
 
 // ============================================================
 // WORKBOOK RESOLUTION
-//
-// Smartsheet resolves:
-//
-// VERIFIED > ADJUSTED > MODELED
-//
-// ACTIVE is authoritative when supplied.
-//
-// Never convert a blank override to zero.
+// ACTIVE > VERIFIED > ADJUSTED > MODELED
 // ============================================================
 
 function resolvedValue(row, axis) {
@@ -219,26 +188,6 @@ function resolvedValue(row, axis) {
 
 // ============================================================
 // CONDITION CONTRIBUTION MODEL
-//
-// IMPORTANT:
-//
-// The workbook already contains diminishing-weighted
-// X/Y aggregate impacts.
-//
-// The coefficients below are used ONLY to attribute
-// the workbook total across applicable controls.
-//
-// The total is NOT weighted again.
-//
-// Rank:
-// 1 = 100%
-// 2 = 50%
-// 3 = 25%
-// 4 = 12.5%
-// 5 = 6.25%
-//
-// This attribution is provisional when workbook totals
-// are replaced with independently calibrated economics.
 // ============================================================
 
 function applicableConditions(row) {
@@ -250,46 +199,35 @@ function applicableConditions(row) {
 function weightedContributions(row) {
   const applicable = applicableConditions(row);
 
-  const result = [];
-
-  for (let i = 0; i < applicable.length; i++) {
-    const def = applicable[i];
-
+  return applicable.map((def, i) => {
     const weight = Math.pow(0.5, i);
 
-    result.push({
+    return {
       key: def.key,
       label: def.label,
       x: def.x * weight,
       y: def.y * weight,
       weight
-    });
-  }
-
-  return result;
+    };
+  });
 }
 
 function rowScenarioImpact(row) {
   const contributions = weightedContributions(row);
 
   if (!contributions.length) {
-    return {
-      xDays: 0,
-      yPoints: 0
-    };
+    return { xDays: 0, yPoints: 0 };
   }
 
   const workbookX = resolvedValue(row, "X");
   const workbookY = resolvedValue(row, "Y");
 
   const totalX = contributions.reduce(
-    (sum, c) => sum + c.x,
-    0
+    (sum, c) => sum + c.x, 0
   );
 
   const totalY = contributions.reduce(
-    (sum, c) => sum + c.y,
-    0
+    (sum, c) => sum + c.y, 0
   );
 
   let selectedX = 0;
@@ -297,7 +235,7 @@ function rowScenarioImpact(row) {
 
   for (const contribution of contributions) {
     const intensity = clamp(
-      finite(levels[contribution.key], 0) / 100,
+      finite(levels[contribution.key]) / 100,
       -1,
       1
     );
@@ -317,17 +255,9 @@ function rowScenarioImpact(row) {
   };
 }
 
-// ============================================================
-// PREPARE ROW-LEVEL IMPACTS
-// ============================================================
-
 function impactRows(data) {
   return data
-    .filter(
-      row =>
-        row.date instanceof Date &&
-        Number.isFinite(+row.date)
-    )
+    .filter(row => validDate(row.date))
     .map(row => {
       const impact = rowScenarioImpact(row);
 
@@ -340,62 +270,10 @@ function impactRows(data) {
     .sort((a, b) => a.time - b.time);
 }
 
-function interpolateImpact(rows, timestamp, axis) {
-  if (!rows.length) return 0;
-
-  if (
-    timestamp < rows[0].time ||
-    timestamp > rows[rows.length - 1].time
-  ) {
-    return 0;
-  }
-
-  if (timestamp === rows[0].time) {
-    return rows[0][axis];
-  }
-
-  let lo = 0;
-  let hi = rows.length - 1;
-
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-
-    if (rows[mid].time <= timestamp) {
-      lo = mid;
-    } else {
-      hi = mid;
-    }
-  }
-
-  const a = rows[lo];
-  const b = rows[hi];
-
-  const fraction =
-    (timestamp - a.time) /
-    ((b.time - a.time) || 1);
-
-  return a[axis] +
-    (b[axis] - a[axis]) * fraction;
-}
-
-// ============================================================
-// SMOOTH IMPACT FIELD
-//
-// Interpolated row impacts are smoothed using a Gaussian
-// kernel over calendar time.
-//
-// This prevents sudden jumps in condition influence.
-//
-// The smoothing bandwidth is derived from chart spacing.
-// ============================================================
-
 function median(values) {
   if (!values.length) return 0;
 
-  const sorted = [...values].sort(
-    (a, b) => a - b
-  );
-
+  const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
 
   return sorted.length % 2
@@ -407,17 +285,15 @@ function impactBandwidth(rows) {
   const gaps = [];
 
   for (let i = 1; i < rows.length; i++) {
-    const gap =
-      (rows[i].time - rows[i - 1].time) /
-      DAY_MS;
+    const gap = (
+      rows[i].time - rows[i - 1].time
+    ) / DAY_MS;
 
     if (gap > 0) gaps.push(gap);
   }
 
-  const typicalGap = median(gaps) || 30;
-
   return clamp(
-    typicalGap * 1.5,
+    (median(gaps) || 30) * 1.5,
     21,
     75
   );
@@ -427,13 +303,11 @@ function smoothImpact(rows, timestamp, axis, bandwidth) {
   if (!rows.length) return 0;
 
   const sigma = bandwidth * DAY_MS;
-
   let weighted = 0;
   let totalWeight = 0;
 
   for (const row of rows) {
-    const distance =
-      (timestamp - row.time) / sigma;
+    const distance = (timestamp - row.time) / sigma;
 
     if (Math.abs(distance) > 4) continue;
 
@@ -486,51 +360,26 @@ function curveValueAt(series, timestamp, key) {
     ((+b.date - +a.date) || 1);
 
   return finite(a[key]) +
-    (
-      finite(b[key]) - finite(a[key])
-    ) * fraction;
+    (finite(b[key]) - finite(a[key])) * fraction;
 }
 
 // ============================================================
-// MONOTONIC TEMPORAL TRANSFORMATION
-//
-// Instead of independently moving every chart point:
-//
-// 1. Establish smooth X displacement.
-// 2. Limit local displacement gradients.
-// 3. Construct a strictly increasing source-time map.
-// 4. Resample the original immutable baseline.
-//
-// This prevents reversed time and sharp kinks.
+// MONOTONIC SCENARIO TIME TRANSFORMATION
 // ============================================================
 
-function buildTimeMap(
-  original,
-  rows,
-  bandwidth
-) {
+function buildTimeMap(original, rows, bandwidth) {
   const n = original.length;
+  const times = original.map(p => +p.date);
 
-  const times = original.map(
-    p => +p.date
-  );
-
-  const rawDays = times.map(
-    time => smoothImpact(
-      rows,
-      time,
-      "x",
-      bandwidth
-    )
+  const rawDays = times.map(time =>
+    smoothImpact(rows, time, "x", bandwidth)
   );
 
   const rawSources = times.map(
-    (time, i) =>
-      time - rawDays[i] * DAY_MS
+    (time, i) => time - rawDays[i] * DAY_MS
   );
 
   const mapped = new Array(n);
-
   mapped[0] = times[0];
 
   const minimumStep = Math.max(
@@ -548,16 +397,12 @@ function buildTimeMap(
 
   mapped[n - 1] = times[n - 1];
 
-  // Backward enforcement preserves the terminal endpoint.
-
   for (let i = n - 2; i >= 1; i--) {
     mapped[i] = Math.min(
       mapped[i],
       mapped[i + 1] - minimumStep
     );
   }
-
-  // Forward pass guarantees chronological order.
 
   for (let i = 1; i < n - 1; i++) {
     mapped[i] = Math.max(
@@ -582,27 +427,18 @@ function buildTimeMap(
 }
 
 // ============================================================
-// SCENARIO DATE TRANSFORMATION
-//
-// The curve uses sourceTime(t).
-//
-// To map an original modeled event date to its scenario
-// occurrence, invert that strictly increasing time map.
-//
-// This allows the execution-window START and END to
-// move by different amounts.
-//
-// Therefore window width may compress or expand.
+// MODELED DATE -> SCENARIO DATE
 // ============================================================
 
-function mapModeledDateToScenario(
-  modeledDate,
-  timeMap
-) {
-  const target = +modeledDate;
+function mapModeledDateToScenario(modeledDate, timeMap) {
+  const date = validDate(modeledDate);
+  if (!date) return null;
 
+  const target = +date;
   const source = timeMap.sources;
   const times = timeMap.times;
+
+  if (!source.length) return date;
 
   if (target <= source[0]) {
     return new Date(times[0]);
@@ -635,47 +471,25 @@ function mapModeledDateToScenario(
   );
 }
 
-// ============================================================
-// SCENARIO WINDOW
-//
-// Anchored to original workbook START / END.
-//
-// No arbitrary 22% peak threshold.
-//
-// Different displacement at START and END can produce:
-//
-// - translation
-// - compression
-// - expansion
-//
-// Dates remain inside the chart domain.
-// ============================================================
-
-function deriveScenarioWindow(
-  baseWindow,
-  timeMap
-) {
-  let start = mapModeledDateToScenario(
+function deriveScenarioWindow(baseWindow, timeMap) {
+  const start = mapModeledDateToScenario(
     baseWindow.start,
     timeMap
   );
 
-  let end = mapModeledDateToScenario(
+  const end = mapModeledDateToScenario(
     baseWindow.end,
     timeMap
   );
 
-  if (+end <= +start) {
+  if (!start || !end || +end <= +start) {
     return {
       start: new Date(+baseWindow.start),
       end: new Date(+baseWindow.end)
     };
   }
 
-  return {
-    start,
-    end
-  };
+  return { start, end };
 }
 
 // ============================================================
@@ -696,24 +510,18 @@ function applyConditionScenario({
     );
   }
 
-  const original = baselineP.map(
-    point => ({
-      ...point,
-      date: new Date(+point.date)
-    })
-  );
+  const original = baselineP.map(point => ({
+    ...point,
+    date: new Date(+point.date)
+  }));
 
   const peakOf = series =>
     series.reduce(
       (a, b) =>
-        b.plotTenant > a.plotTenant
-          ? b
-          : a
+        b.plotTenant > a.plotTenant ? b : a
     );
 
-  // --------------------------------------------------------
-  // EXACT BASELINE
-  // --------------------------------------------------------
+  // Exact modeled baseline: no scenario changes.
 
   if (!scenarioActive()) {
     const peakPoint = peakOf(original);
@@ -721,12 +529,17 @@ function applyConditionScenario({
     const result = {
       active: false,
       series: original,
+
       window: {
         start: new Date(+baseWindow.start),
         end: new Date(+baseWindow.end)
       },
+
+      mapDate: date => validDate(date),
+
       peak: clamp100(peakPoint.plotTenant),
       peakDate: new Date(+peakPoint.date),
+
       shiftDays: 0,
       widthDeltaDays: 0,
       xDays: 0,
@@ -734,13 +547,8 @@ function applyConditionScenario({
     };
 
     latestScenario = result;
-
     return result;
   }
-
-  // --------------------------------------------------------
-  // BUILD SMOOTH SCENARIO
-  // --------------------------------------------------------
 
   const rows = impactRows(data);
   const bandwidth = impactBandwidth(rows);
@@ -780,26 +588,20 @@ function applyConditionScenario({
       "plotLandlord"
     );
 
-    
-return {
-  ...point,
+    return {
+      ...point,
 
-  plotTenant: applyBoundedLeverage(
-    tenantBase,
-    yImpact
-  ),
+      plotTenant: applyBoundedLeverage(
+        tenantBase,
+        yImpact
+      ),
 
-  plotLandlord: applyBoundedLeverage(
-    landlordBase,
-    -yImpact
-  )
-};
-
+      plotLandlord: applyBoundedLeverage(
+        landlordBase,
+        -yImpact
+      )
+    };
   });
-
-  // --------------------------------------------------------
-  // EXECUTION WINDOW
-  // --------------------------------------------------------
 
   const window = deriveScenarioWindow(
     baseWindow,
@@ -837,39 +639,32 @@ return {
     series,
     window,
 
-    peak: clamp100(
-      peakPoint.plotTenant
-    ),
+    mapDate: date =>
+      mapModeledDateToScenario(date, timeMap),
 
-    peakDate: new Date(
-      +peakPoint.date
-    ),
+    peak: clamp100(peakPoint.plotTenant),
+    peakDate: new Date(+peakPoint.date),
 
     shiftDays: dayDifference(
       baseWindow.start,
       window.start
     ),
 
-    widthDeltaDays:
-      scenarioWidth - baseWidth,
-
+    widthDeltaDays: scenarioWidth - baseWidth,
     xDays,
     yPoints
   };
 
   latestScenario = result;
-
   return result;
 }
 
 // ============================================================
-// PANEL STATE / RESET
+// PANEL STATE
 // ============================================================
 
 function getConditionScenarioState() {
-  return {
-    ...levels
-  };
+  return { ...levels };
 }
 
 function resetConditionScenario(rerender) {
@@ -894,39 +689,20 @@ function syncPanel() {
       `condition_${definition.key}_value`
     );
 
-    if (input) {
-      input.value = String(
-        levels[definition.key]
-      );
-    }
+    const level = levels[definition.key];
+
+    if (input) input.value = String(level);
 
     if (value) {
-      const level = levels[definition.key];
-
       value.textContent = level === 0
         ? "MODELED"
-        : (
-            (level > 0 ? "+" : "") +
-            level +
-            "%"
-          );
+        : `${level > 0 ? "+" : ""}${level}%`;
     }
   }
 }
 
 // ============================================================
-// SIDE PANEL
-//
-// Mounts once when app.js finishes loading ArcGIS data.
-//
-// No iteration selection required.
-//
-// Built-in styling avoids dependence on unfinished CSS.
-//
-// Expanded panel: bottom-left.
-// Collapsed tab: bottom-left.
-//
-// Collapse never resets scenario.
+// SCENARIO CONDITIONS PANEL
 // ============================================================
 
 function ensureConditionsPanel({
@@ -939,39 +715,23 @@ function ensureConditionsPanel({
     document.getElementById("conditionsMount") ||
     document.getElementById("wrap");
 
-  if (!host) {
-    return null;
-  }
+  if (!host) return null;
 
-  const existing = document.getElementById(
-    PANEL_ID
-  );
+  const existing = document.getElementById(PANEL_ID);
+  if (existing) return existing;
 
-  if (existing) {
-    return existing;
-  }
-
-  if (
-    getComputedStyle(host).position === "static"
-  ) {
+  if (getComputedStyle(host).position === "static") {
     host.style.position = "relative";
   }
 
-  // --------------------------------------------------------
-  // PANEL
-  // --------------------------------------------------------
-
   const panel = document.createElement("aside");
-
   panel.id = PANEL_ID;
   panel.className = "conditions-panel";
 
   Object.assign(panel.style, {
     position: "absolute",
-    top: "auto",
     bottom: "12px",
     left: "12px",
-    right: "auto",
     zIndex: "100",
     width: "310px",
     maxHeight: "calc(100% - 24px)",
@@ -985,22 +745,15 @@ function ensureConditionsPanel({
     boxShadow: "0 10px 30px rgba(0,0,0,.35)"
   });
 
-  // --------------------------------------------------------
-  // COLLAPSED TAB
-  // --------------------------------------------------------
-
   const tab = document.createElement("button");
-
   tab.id = TAB_ID;
   tab.className = "conditions-tab";
   tab.textContent = "▶ CONDITIONS";
 
   Object.assign(tab.style, {
     position: "absolute",
-    top: "auto",
     bottom: "12px",
     left: "0",
-    right: "auto",
     zIndex: "101",
     display: "none",
     background: "#1B1D2C",
@@ -1013,9 +766,7 @@ function ensureConditionsPanel({
     cursor: "pointer"
   });
 
-  // --------------------------------------------------------
-  // HEADER
-  // --------------------------------------------------------
+  // Header
 
   const header = document.createElement("div");
 
@@ -1028,7 +779,6 @@ function ensureConditionsPanel({
   });
 
   const title = document.createElement("strong");
-
   title.textContent = "SCENARIO CONDITIONS";
 
   Object.assign(title.style, {
@@ -1037,33 +787,21 @@ function ensureConditionsPanel({
     fontWeight: "700"
   });
 
-  const collapseButton = document.createElement(
-    "button"
-  );
-
+  const collapseButton = document.createElement("button");
   collapseButton.type = "button";
   collapseButton.textContent = "◀";
   collapseButton.title = "Collapse conditions";
 
-  header.append(
-    title,
-    collapseButton
-  );
-
+  header.append(title, collapseButton);
   panel.appendChild(header);
 
-  // --------------------------------------------------------
-  // SLIDERS
-  // --------------------------------------------------------
+  // Sliders
 
   for (const definition of CONDITION_DEFS) {
     const row = document.createElement("div");
-
     row.className = "condition-row";
 
-    Object.assign(row.style, {
-      marginBottom: "12px"
-    });
+    row.style.marginBottom = "12px";
 
     const heading = document.createElement("div");
 
@@ -1077,22 +815,14 @@ function ensureConditionsPanel({
     });
 
     const label = document.createElement("span");
-
     label.textContent = definition.label;
 
     const value = document.createElement("strong");
-
-    value.id =
-      `condition_${definition.key}_value`;
-
+    value.id = `condition_${definition.key}_value`;
     value.textContent = "MODELED";
-
     value.style.color = "#FFDF00";
 
-    heading.append(
-      label,
-      value
-    );
+    heading.append(label, value);
 
     const slider = document.createElement("input");
 
@@ -1112,39 +842,27 @@ function ensureConditionsPanel({
       cursor: "pointer"
     });
 
-    slider.addEventListener(
-      "input",
-      () => {
-        levels[definition.key] = clamp(
-          finite(slider.value),
-          -100,
-          100
-        );
+    slider.addEventListener("input", () => {
+      levels[definition.key] = clamp(
+        finite(slider.value),
+        -100,
+        100
+      );
 
-        syncPanel();
+      syncPanel();
 
-        if (
-          typeof rerender === "function"
-        ) {
-          rerender();
-        }
+      if (typeof rerender === "function") {
+        rerender();
       }
-    );
+    });
 
-    row.append(
-      heading,
-      slider
-    );
-
+    row.append(heading, slider);
     panel.appendChild(row);
   }
 
-  // --------------------------------------------------------
-  // SCENARIO SUMMARY
-  // --------------------------------------------------------
+  // Scenario summary
 
   const summary = document.createElement("div");
-
   summary.id = "conditionImpact";
 
   Object.assign(summary.style, {
@@ -1173,27 +891,14 @@ function ensureConditionsPanel({
       ? "SCENARIO ACTIVE"
       : "BASE MODEL ACTIVE";
 
-    const peak = Number.isFinite(
-      scenario.peak
-    )
+    const peak = Number.isFinite(scenario.peak)
       ? scenario.peak.toFixed(1)
       : "—";
 
-    const width = finite(
-      scenario.widthDeltaDays
-    );
-
-    const shift = finite(
-      scenario.shiftDays
-    );
-
-    const xDays = finite(
-      scenario.xDays
-    );
-
-    const yPoints = finite(
-      scenario.yPoints
-    );
+    const width = finite(scenario.widthDeltaDays);
+    const shift = finite(scenario.shiftDays);
+    const xDays = finite(scenario.xDays);
+    const yPoints = finite(scenario.yPoints);
 
     summary.textContent =
       status +
@@ -1203,12 +908,10 @@ function ensureConditionsPanel({
       " – " +
       fmtDate(scenario.window.end) +
       " | SHIFT " +
-      (shift > 0 ? "+" : "") +
-      shift +
+      (shift > 0 ? "+" : "") + shift +
       " DAYS" +
       " | WIDTH " +
-      (width > 0 ? "+" : "") +
-      width +
+      (width > 0 ? "+" : "") + width +
       " DAYS" +
       " | X " +
       (xDays > 0 ? "+" : "") +
@@ -1220,12 +923,9 @@ function ensureConditionsPanel({
       " PTS";
   };
 
-  // --------------------------------------------------------
-  // RESET
-  // --------------------------------------------------------
+  // Reset
 
   const reset = document.createElement("button");
-
   reset.type = "button";
   reset.textContent = "RESET TO MODELED";
 
@@ -1237,43 +937,32 @@ function ensureConditionsPanel({
     cursor: "pointer"
   });
 
-  reset.addEventListener(
-    "click",
-    () => {
-      resetConditionScenario(rerender);
-    }
-  );
+  reset.addEventListener("click", () => {
+    resetConditionScenario(rerender);
+  });
 
   panel.appendChild(reset);
 
-  // --------------------------------------------------------
-  // COLLAPSE / EXPAND
-  // --------------------------------------------------------
+  // Collapse / expand
 
-  collapseButton.addEventListener(
-    "click",
-    () => {
-      panelCollapsed = true;
+  collapseButton.addEventListener("click", () => {
+    panelCollapsed = true;
+    panel.style.display = "none";
+    tab.style.display = "block";
+  });
 
-      panel.style.display = "none";
-      tab.style.display = "block";
-    }
-  );
+  tab.addEventListener("click", () => {
+    panelCollapsed = false;
+    panel.style.display = "block";
+    tab.style.display = "none";
+  });
 
-  tab.addEventListener(
-    "click",
-    () => {
-      panelCollapsed = false;
+  host.append(tab, panel);
 
-      panel.style.display = "block";
-      tab.style.display = "none";
-    }
-  );
-
-  host.append(
-    tab,
-    panel
-  );
+  if (panelCollapsed) {
+    panel.style.display = "none";
+    tab.style.display = "block";
+  }
 
   syncPanel();
   panel.refreshSummary();
@@ -1282,7 +971,7 @@ function ensureConditionsPanel({
 }
 
 // ============================================================
-// EXPORTS — EXISTING APP.JS CONTRACT
+// EXPORTS
 // ============================================================
 
 export {
