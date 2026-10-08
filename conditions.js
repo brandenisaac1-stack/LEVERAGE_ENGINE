@@ -83,13 +83,26 @@ function clamp(value, minimum, maximum) {
   );
 }
 
-function clamp100(value) {
-  return clamp(
-    Number.isFinite(Number(value)) ? Number(value) : 0,
-    0,
-    100
+
+function applyBoundedLeverage(base, adjustment, sensitivity = 25) {
+  const b = clamp100(base);
+  const a = Number.isFinite(adjustment) ? adjustment : 0;
+
+  if (a === 0) return b;
+
+  if (a > 0) {
+    return clamp100(
+      b + (100 - b) * a / (sensitivity + a)
+    );
+  }
+
+  const magnitude = -a;
+
+  return clamp100(
+    b - b * magnitude / (sensitivity + magnitude)
   );
 }
+
 
 function finite(value, fallback = 0) {
   if (
@@ -767,17 +780,21 @@ function applyConditionScenario({
       "plotLandlord"
     );
 
-    return {
-      ...point,
+    
+return {
+  ...point,
 
-      plotTenant: clamp100(
-        tenantBase + yImpact
-      ),
+  plotTenant: applyBoundedLeverage(
+    tenantBase,
+    yImpact
+  ),
 
-      plotLandlord: clamp100(
-        landlordBase - yImpact
-      )
-    };
+  plotLandlord: applyBoundedLeverage(
+    landlordBase,
+    -yImpact
+  )
+};
+
   });
 
   // --------------------------------------------------------
