@@ -67,6 +67,14 @@ function clamp100(value) {
   return clamp(Number.isFinite(n) ? n : 0, 0, 100);
 }
 
+function clamp100(value) {
+  const n = Number(value);
+  return Math.max(
+    0,
+    Math.min(100, Number.isFinite(n) ? n : 0)
+  );
+}
+
 function applyBoundedLeverage(
   base,
   adjustment,
