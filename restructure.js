@@ -349,7 +349,7 @@ function focusedMilestones({
 }
 
 function fmtDate(d){
-  return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`
+  return d.toLocaleDateString('en-US',{month:'short',year:'numeric'});
 }
 
 function drawRestructure({

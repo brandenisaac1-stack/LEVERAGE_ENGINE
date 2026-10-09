@@ -70,8 +70,8 @@ return Number.isFinite(+baseDelta)?+baseDelta:NaN;
 }
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
-const fmtUTC=d=>`${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(-2)}`;
+const fmt=d=>d.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+const fmtUTC=d=>d.toLocaleDateString('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
 const money=v=>Number.isFinite(+v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(+v):'—';
 const months=(a,b)=>Math.max(0,Math.round((b-a)/2629800000));
 

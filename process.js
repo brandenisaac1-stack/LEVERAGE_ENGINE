@@ -21,7 +21,7 @@ const RESTRUCTURE_COLORS=[
 
 function cleanStage(v){return String(v??'').trim().replace(/\s+/g,' ')}
 function validDate(v){if(v instanceof Date)return Number.isFinite(+v)?new Date(+v):null;if(typeof v==='number'){const d=new Date(v);return Number.isFinite(+d)?d:null}if(typeof v==='string'&&v.trim()){const d=new Date(v);return Number.isFinite(+d)?d:null}return null}
-function fmtDate(d){return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`}
+function fmtDate(d){return d.toLocaleDateString('en-US',{month:'short',year:'numeric'})}
 function dayBefore(d){const x=new Date(+d);x.setDate(x.getDate()-1);return x}
 function monthDuration(a,b){return Math.max(0,Math.round((+b-+a)/2629800000))}
 
