@@ -498,6 +498,23 @@ class:'grid'
 txt(m.l-8,y(v)+3,v,'axis','end');
 }
 
+const leverageLabel=txt(
+  16,
+  m.t+ph/2,
+  'LEVERAGE',
+  'axis',
+  'middle'
+);
+
+leverageLabel.setAttribute(
+  'transform',
+  `rotate(-90 16 ${m.t+ph/2})`
+);
+leverageLabel.setAttribute('fill','#D7DADE');
+leverageLabel.setAttribute('font-size','13');
+leverageLabel.setAttribute('font-weight','700');
+leverageLabel.setAttribute('letter-spacing','1.5');
+
 const axisStart=new Date(
 P[0].date.getFullYear(),
 P[0].date.getMonth()<6?0:6,
