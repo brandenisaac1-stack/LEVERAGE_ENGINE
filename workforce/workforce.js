@@ -1,127 +1,380 @@
 
-/*
- * ChronOS | Workforce Convergence Engine
- * Version 1 — Independent application preview
- *
- * Live ArcGIS integration will be added separately.
- * No fabricated rankings, workforce data, or isochrones.
- */
+ // ChronOS Workforce Convergence
+ // Live authentication and ranked-building milestone.
 
-const $ = id => document.getElementById(id);
+ import {
+   connectWorkforceLayers,
+   loadReloBuildings
+ } from './workforce-data.js';
 
-const defaults = {
-  commuteMinutes: '45',
-  competitorInfluence: '50',
-  buildingCount: '3',
-  travelMode: 'drive',
-  earningsMin: '70000',
-  earningsMax: '120000'
-};
+ import {
+   createWorkforceMap
+ } from './workforce-map.js';
 
-function syncControls() {
-  $('commuteValue').textContent =
-    `${$('commuteMinutes').value} MIN`;
+ const $ = id => document.getElementById(id);
 
-  $('competitorValue').textContent =
-    `${$('competitorInfluence').value}%`;
+ // Public OAuth application ID only. Never a client secret.
+ const CLIENT_ID = 's1njB7yKDBlf7REY';
 
-  $('mapSource').textContent =
-    'PREVIEW ONLY · Live ArcGIS layer connections pending';
+ const PORTAL = 'https://savills-na.maps.arcgis.com';
 
-  $('rankedBuildings').innerHTML = `
-    <span class="preview-badge">
-      TOP ${$('buildingCount').value} · DATA NOT LOADED
-    </span>
+ const defaults = {
+   commuteMinutes: '45',
+   competitorInfluence: '50',
+   buildingCount: '3',
+   travelMode: 'drive',
+   earningsMin: '70000',
+   earningsMax: '120000'
+ };
 
-    <p class="empty-state">
-      The approved Relo Well rankings will appear here
-      after ArcGIS data integration. No placeholder
-      buildings or rankings are displayed.
-    </p>
-  `;
+ let data = [];
+ let mapController = null;
+ let identityManager = null;
+ let selectedSubject = '';
 
-  $('locationInsights').innerHTML = `
-    <p class="empty-state">
-      Select a live Relo Well building after the data
-      connector is installed. Workforce accessibility
-      will require a validated service-area analysis.
-    </p>
-  `;
-}
+ function status(message) {
+   $('connectionStatus').textContent = message;
+ }
 
-function initialize() {
-  $('connectionStatus').textContent =
-    'INTERFACE PREVIEW · NOT CONNECTED';
+ function setText(id, value) {
+   const el = $(id);
+   if (el) el.textContent = value;
+ }
 
-  $('mapLoading').innerHTML = `
-    <h2>WORKFORCE CONVERGENCE</h2>
+ function option(select, value, label) {
+   const el = document.createElement('option');
+   el.value = value;
+   el.textContent = label;
+   select.appendChild(el);
+ }
 
-    <p>
-      The independent dashboard is running.
-      The map, Relo Well rankings, workforce layers,
-      and network isochrones will be connected in
-      the next implementation stage.
-    </p>
-  `;
+ function selectedBuildings() {
+   return data.slice(
+     0,
+     Number($('buildingCount').value)
+   );
+ }
 
-  const marker = document.createElement('div');
+ function currentSubject() {
+   const record = data.find(
+     b => b.subject === selectedSubject
+   );
 
-  marker.className = 'preview-marker';
-  marker.textContent = 'MAP VIEW · PENDING LIVE ARCGIS';
+   if (
+     !record ||
+     !Number.isFinite(record.subjectLatitude) ||
+     !Number.isFinite(record.subjectLongitude)
+   ) {
+     return null;
+   }
 
-  $('map').appendChild(marker);
+   return {
+     ...record,
+     latitude: record.subjectLatitude,
+     longitude: record.subjectLongitude
+   };
+ }
 
-  const controlIds = [
-    'commuteMinutes',
-    'competitorInfluence',
-    'buildingCount',
-    'travelMode',
-    'earningsMin',
-    'earningsMax',
-    'showTalent',
-    'showIsochrones',
-    'showBuildings',
-    'showCompetitors'
-  ];
+ function updateControls() {
+   setText(
+     'commuteValue',
+     `${$('commuteMinutes').value} MIN`
+   );
 
-  for (const id of controlIds) {
-    $(id)?.addEventListener('input', syncControls);
-  }
+   setText(
+     'competitorValue',
+     `${$('competitorInfluence').value}%`
+   );
 
-  $('resetAssumptions').addEventListener('click', () => {
-    for (const [id, value] of Object.entries(defaults)) {
-      $(id).value = value;
-    }
+   if (!data.length) return;
 
-    for (const id of [
-      'showTalent',
-      'showIsochrones',
-      'showBuildings'
-    ]) {
-      $(id).checked = true;
-    }
+   renderData();
+ }
 
-    $('showCompetitors').checked = false;
+ function renderData() {
+   const subject = currentSubject();
+   const subset = selectedBuildings();
 
-    syncControls();
-  });
+   setText(
+     'subjectAddress',
+     selectedSubject || 'No subject selected'
+   );
 
-  $('login').addEventListener('click', () => {
-    window.alert(
-      'ArcGIS sign-in is not connected in this ' +
-      'interface-only checkpoint. The next module ' +
-      'will integrate Savills ArcGIS OAuth and ' +
-      'hosted layers. No credentials are requested here.'
-    );
-  });
+   const panel = $('rankedBuildings');
+   panel.replaceChildren();
 
-  $('logout').addEventListener('click', () => {
-    window.alert(
-      'No Workforce Convergence session is active.'
-    );
-  });
+   subset.forEach(b => {
+     const card = document.createElement('div');
 
-  syncControls();
-}
+     card.style.cssText =
+       'border-bottom:1px solid #39425b;' +
+       'padding:11px 0;cursor:pointer;';
 
-initialize();
+     const heading = document.createElement('strong');
+     heading.style.color = '#8ABDF3';
+
+     heading.textContent =
+       `#${b.rank}  ${
+         b.address ||
+         b.display ||
+         'Ranked building'
+       }`;
+
+     card.appendChild(heading);
+
+     if (b.score != null) {
+       const score = document.createElement('div');
+
+       score.textContent =
+         `Relo composite: ${b.score.toFixed(1)}`;
+
+       score.style.cssText =
+         'margin-top:5px;' +
+         'font-size:12px;' +
+         'color:#D7DADE;';
+
+       card.appendChild(score);
+     }
+
+     card.onclick = () => {
+       const insights = $('locationInsights');
+       insights.replaceChildren();
+
+       const t = document.createElement('p');
+
+       t.textContent =
+         b.explanation ||
+         'No published Relo ranking explanation for this building.';
+
+       insights.appendChild(t);
+
+       mapController?.view.goTo({
+         center: [b.longitude, b.latitude],
+         zoom: 13
+       }).catch(() => {});
+     };
+
+     panel.appendChild(card);
+   });
+
+   mapController?.render({
+     buildings: subset,
+     subject,
+     showBuildings: $('showBuildings').checked
+   });
+
+   setText(
+     'mapSource',
+     'LIVE: Savills ArcGIS · Relo Well | Isochrones not yet enabled'
+   );
+
+   setText(
+     'locationInsights',
+     'Select a ranked building for its published ranking explanation. Workforce scenarios and routing are pending validation.'
+   );
+ }
+
+ function populateSubjects() {
+   const select = $('subjectSelect');
+   select.replaceChildren();
+
+   const names = [
+     ...new Set(
+       data.map(b => b.subject).filter(Boolean)
+     )
+   ];
+
+   if (!names.length) {
+     option(
+       select,
+       '',
+       'Subject field unavailable'
+     );
+
+     select.disabled = true;
+     return;
+   }
+
+   names.forEach(name =>
+     option(select, name, name)
+   );
+
+   select.disabled = false;
+   selectedSubject = names[0];
+   select.value = selectedSubject;
+
+   select.onchange = () => {
+     selectedSubject = select.value;
+     renderData();
+   };
+ }
+
+ async function loadLive() {
+   status('LOADING LIVE ARCGIS DATA...');
+
+   const FeatureLayer = await $arcgis.import(
+     '@arcgis/core/layers/FeatureLayer.js'
+   );
+
+   const {
+     reloLayer,
+     tractLayer
+   } = await connectWorkforceLayers(FeatureLayer);
+
+   const result = await loadReloBuildings(reloLayer);
+
+   data = result.buildings;
+
+   if (!data.length) {
+     throw new Error(
+       'Relo Well returned no ranked buildings with usable coordinates. Verify eligibility and latitude/longitude fields.'
+     );
+   }
+
+   if (!mapController) {
+     mapController = await createWorkforceMap({
+       container: 'map',
+       $arcgis
+     });
+   }
+
+   $('mapLoading')?.remove();
+
+   populateSubjects();
+   renderData();
+
+   $('login').hidden = true;
+   $('logout').hidden = false;
+
+   status(
+     `LIVE · ${data.length} RANKED BUILDINGS · TRACT LAYER CONNECTED`
+   );
+
+   console.info('Workforce layer fields', {
+     relo: result.columns,
+     tract: tractLayer.fields.map(f => f.name)
+   });
+ }
+
+ async function initAuth() {
+   const [
+     OAuthInfo,
+     IdentityManager
+   ] = await Promise.all([
+     $arcgis.import(
+       '@arcgis/core/identity/OAuthInfo.js'
+     ),
+     $arcgis.import(
+       '@arcgis/core/identity/IdentityManager.js'
+     )
+   ]);
+
+   identityManager = IdentityManager;
+
+   const info = new OAuthInfo({
+     appId: CLIENT_ID,
+     portalUrl: PORTAL,
+     popup: true,
+     popupCallbackUrl: '../oauth-callback.html',
+     flowType: 'auto'
+   });
+
+   identityManager.registerOAuthInfos([info]);
+
+   try {
+     await identityManager.checkSignInStatus(
+       `${PORTAL}/sharing/rest`
+     );
+
+     await loadLive();
+
+   } catch (error) {
+     console.error(
+       'Workforce initialization or data load',
+       error
+     );
+
+     status(
+       error?.name === 'identity-manager:not-authenticated'
+         ? 'SIGN IN REQUIRED'
+         : `SIGN IN / LOAD DATA: ${
+             error.message || error
+           }`
+     );
+   }
+ }
+
+ function wire() {
+   [
+     'commuteMinutes',
+     'competitorInfluence',
+     'buildingCount',
+     'travelMode',
+     'earningsMin',
+     'earningsMax',
+     'showBuildings'
+   ].forEach(id =>
+     $(id)?.addEventListener(
+       'input',
+       updateControls
+     )
+   );
+
+   $('resetAssumptions').onclick = () => {
+     Object.entries(defaults).forEach(
+       ([id, value]) => {
+         $(id).value = value;
+       }
+     );
+
+     [
+       'showTalent',
+       'showIsochrones',
+       'showBuildings'
+     ].forEach(id => {
+       $(id).checked = true;
+     });
+
+     $('showCompetitors').checked = false;
+
+     updateControls();
+   };
+
+   $('login').onclick = async () => {
+     try {
+       status('AUTHENTICATING...');
+
+       await identityManager.getCredential(
+         `${PORTAL}/sharing/rest`
+       );
+
+       await loadLive();
+
+     } catch (error) {
+       console.error(error);
+
+       status(
+         `ERROR: ${error.message || error}`
+       );
+     }
+   };
+
+   $('logout').onclick = () => {
+     identityManager?.destroyCredentials();
+     location.reload();
+   };
+
+   updateControls();
+ }
+
+ wire();
+
+ initAuth().catch(error => {
+   console.error(error);
+
+   status(
+     `INITIALIZATION ERROR: ${
+       error.message || error
+     }`
+   );
+ });
