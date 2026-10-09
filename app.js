@@ -33,15 +33,7 @@ function refreshTodaysRead(){
 
   const d=DATA[0];
 
-  const heading=String(d.chrono??'')
-    .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION\s*$/i,'')
-    .trim();
-
-  const phase=String(d.phase??'').trim();
-
-  const decisionText=phase
-    ?`${phase} | ${heading}`
-    :heading;
+ const decisionText=String(d.phase??'').trim();
 
   const title=document.createElement('div');
   title.textContent=decisionText;
