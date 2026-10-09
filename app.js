@@ -1,7 +1,7 @@
 import { shapedSeries } from "./curves.js";
 import { drawProcess } from "./process.js?v=20261006-ldi-final";
 import { showPopup } from "./annotations.js";
-import { drawRestructure } from "./restructure.js?v=20261005-command-final";
+import { drawRestructure } from "./restructure.js?v=20261009-cleanup-v2";
 import { renderIntelligence } from "./intelligence.js?v=20261006-ldi-final";
 import { ensureConditionsPanel, applyConditionScenario } from "./conditions.js?v=20261007-conditions-v1";
 
