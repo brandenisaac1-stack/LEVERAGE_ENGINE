@@ -34,14 +34,20 @@ function refreshTodaysRead(){
   const d=DATA[0];
 
   const heading=String(d.chrono??'')
-    .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION/gi,'')
-    .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION\s*$/gi,'')
+    .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION\s*$/i,'')
     .trim();
 
+  const phase=String(d.phase??'').trim();
+
+  const decisionText=phase
+    ?`${phase} | ${heading}`
+    :heading;
+
   const title=document.createElement('div');
-  title.textContent=heading;
+  title.textContent=decisionText;
   title.style.color='#5DA5EE';
   title.style.fontWeight='700';
+  title.style.lineHeight='1.6';
 
   content.appendChild(title);
 }
