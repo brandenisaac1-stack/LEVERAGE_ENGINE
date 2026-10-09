@@ -402,6 +402,7 @@ refreshTodaysRead();
 const todaysButton=$('todaysReadButton');
 if(todaysButton){
   todaysButton.hidden=false;
+  todaysButton.style.display='block';
 }
 
 }
