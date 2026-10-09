@@ -147,6 +147,42 @@
 
       <svg id="chart"></svg>
 
+<button
+  id="todaysReadButton"
+  type="button"
+  hidden
+  aria-expanded="false"
+  aria-controls="todaysReadPanel"
+  style="position:absolute;top:12px;left:70px;z-index:20;background:#25273A;color:#FFDF00;border:1px solid #FFDF00;border-radius:5px;padding:8px 12px;font-family:Gotham,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;"
+>
+  TODAY'S READ
+</button>
+
+<div
+  id="todaysReadPanel"
+  hidden
+  role="region"
+  aria-label="Today's Read"
+  style="position:absolute;top:52px;left:70px;z-index:21;width:min(440px,calc(100% - 90px));max-height:65%;overflow-y:auto;box-sizing:border-box;background:#1B1D2C;color:#FFFFFF;border:1px solid #FFDF00;border-radius:7px;padding:14px;font-family:Gotham,Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);"
+>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <strong style="color:#FFDF00;font-size:13px;">
+      TODAY'S READ
+    </strong>
+    <button
+      id="todaysReadClose"
+      type="button"
+      aria-label="Close Today's Read"
+      style="background:transparent;color:#FFFFFF;border:0;font-size:20px;cursor:pointer;"
+    >×</button>
+  </div>
+
+  <div
+    id="todaysReadContent"
+    style="margin-top:12px;font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;"
+  ></div>
+</div>
+
 
       <div
         id="popup"

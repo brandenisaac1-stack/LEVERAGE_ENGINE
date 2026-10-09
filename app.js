@@ -20,6 +20,54 @@ const wrap=$('wrap'),svg=$('chart'),popup=$('popup'),select=$('iteration'),statu
 let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 let LAST_CONDITION_SCENARIO=null;
 
+function refreshTodaysRead(){
+  const content=$('todaysReadContent');
+  if(!content)return;
+
+  content.replaceChildren();
+
+  if(!DATA.length){
+    content.textContent='Decision narrative unavailable until live data loads.';
+    return;
+  }
+
+  const d=DATA[0];
+
+  const heading=[d.phase,d.action,d.chrono]
+    .filter(v=>v!=null&&String(v).trim()!=='')
+    .map(v=>String(v).trim())
+    .join(' · ');
+
+  const narrative=d.read==null?'':String(d.read).trim();
+
+  if(heading){
+    const title=document.createElement('div');
+    title.textContent=heading;
+    title.style.color='#5DA5EE';
+    title.style.fontWeight='700';
+    title.style.marginBottom='10px';
+    content.appendChild(title);
+  }
+
+  const body=document.createElement('div');
+  body.textContent=narrative||
+    'No decision narrative is available for the first chart record.';
+
+  content.appendChild(body);
+}
+
+function toggleTodaysRead(open){
+  const panel=$('todaysReadPanel');
+  const button=$('todaysReadButton');
+
+  if(!panel||!button)return;
+
+  if(open)refreshTodaysRead();
+
+  panel.hidden=!open;
+  button.setAttribute('aria-expanded',String(open));
+}
+
 function updateScenarioTitle(){
   const title=$('scenarioTitle');
   if(!title)return;
@@ -348,6 +396,14 @@ ensureConditionsPanel({
 render();
 updateImpact();
 renderLiveIntelligence();
+
+refreshTodaysRead();
+
+const todaysButton=$('todaysReadButton');
+if(todaysButton){
+  todaysButton.hidden=false;
+}
+
 }
 
 function renderLiveIntelligence(){
@@ -923,6 +979,22 @@ function choose(i){
 
 $('login').onclick=signIn;
 $('centerLogin').onclick=signIn;
+
+const todaysReadButton=$('todaysReadButton');
+const todaysReadClose=$('todaysReadClose');
+
+if(todaysReadButton){
+  todaysReadButton.onclick=()=>{
+    const panel=$('todaysReadPanel');
+    toggleTodaysRead(!!panel?.hidden);
+  };
+}
+
+if(todaysReadClose){
+  todaysReadClose.onclick=()=>{
+    toggleTodaysRead(false);
+  };
+}
 
 $('logout').onclick=()=>{
 idm?.destroyCredentials();
