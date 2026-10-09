@@ -499,21 +499,23 @@ txt(m.l-8,y(v)+3,v,'axis','end');
 }
 
 const leverageLabel=txt(
-  16,
+  14,
   m.t+ph/2,
   'LEVERAGE',
-  'axis',
+  '',
   'middle'
 );
 
 leverageLabel.setAttribute(
   'transform',
-  `rotate(-90 16 ${m.t+ph/2})`
+  `rotate(-90 14 ${m.t+ph/2})`
 );
-leverageLabel.setAttribute('fill','#D7DADE');
-leverageLabel.setAttribute('font-size','13');
-leverageLabel.setAttribute('font-weight','700');
-leverageLabel.setAttribute('letter-spacing','1.5');
+
+leverageLabel.style.setProperty('fill','#D7DADE','important');
+leverageLabel.style.setProperty('font-size','14px','important');
+leverageLabel.style.setProperty('font-weight','700','important');
+leverageLabel.style.setProperty('letter-spacing','1.5px','important');
+leverageLabel.style.setProperty('opacity','1','important');
 
 const axisStart=new Date(
 P[0].date.getFullYear(),
