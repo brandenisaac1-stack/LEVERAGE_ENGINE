@@ -21,7 +21,7 @@ let DATA=[],selected=-1,idm,FeatureLayer,fields={};
 let LAST_CONDITION_SCENARIO=null;
 
 function refreshTodaysRead(){
-  const content=$('todaysReadContent');
+  const content=document.getElementById('todaysReadContent');
   if(!content)return;
 
   content.replaceChildren();
@@ -34,19 +34,16 @@ function refreshTodaysRead(){
   const d=DATA[0];
 
   const heading=String(d.chrono??'')
-  .trim()
-  .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION\s*$/i,'')
-  .trim();
+    .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION/gi,'')
+    .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION\s*$/gi,'')
+    .trim();
 
-  if(heading){
-    const title=document.createElement('div');
-    title.textContent=heading;
-    title.style.color='#5DA5EE';
-    title.style.fontWeight='700';
-    title.style.marginBottom='10px';
-    content.appendChild(title);
-  }
+  const title=document.createElement('div');
+  title.textContent=heading;
+  title.style.color='#5DA5EE';
+  title.style.fontWeight='700';
 
+  content.appendChild(title);
 }
 
 function toggleTodaysRead(open){
