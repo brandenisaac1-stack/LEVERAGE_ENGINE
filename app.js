@@ -33,12 +33,10 @@ function refreshTodaysRead(){
 
   const d=DATA[0];
 
-  const heading=[d.phase,d.action,d.chrono]
-    .filter(v=>v!=null&&String(v).trim()!=='')
-    .map(v=>String(v).trim())
-    .join(' · ');
-
-  const narrative=d.read==null?'':String(d.read).trim();
+  const heading=String(d.chrono??'')
+  .trim()
+  .replace(/\s*[·|]\s*CORE\s*[·|]\s*POSITION\s*$/i,'')
+  .trim();
 
   if(heading){
     const title=document.createElement('div');
@@ -49,11 +47,6 @@ function refreshTodaysRead(){
     content.appendChild(title);
   }
 
-  const body=document.createElement('div');
-  body.textContent=narrative||
-    'No decision narrative is available for the first chart record.';
-
-  content.appendChild(body);
 }
 
 function toggleTodaysRead(open){
