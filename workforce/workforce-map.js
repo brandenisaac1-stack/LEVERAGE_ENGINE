@@ -1,28 +1,17 @@
 
 /*
- * ChronOS | Workforce Convergence Engine
- * workforce-map.js
+ * ChronOS Workforce Convergence
+ * STABLE ARCGIS MAP
  *
- * Stable 2D ArcGIS map renderer.
- *
- * - No automatic goTo() during render()
- * - Initial Washington, DC map extent
- * - Actual Relo Well building coordinates
- * - Separate subject and ranked-building layers
- * - Manual map navigation preserved
- * - No fabricated isochrones or workforce scores
- *
- * Independent of Lease Leverage Engine.
+ * No automatic viewport repositioning.
+ * No wheel zoom.
+ * No render-triggered navigation.
  */
 
 export async function createWorkforceMap({
   container,
   $arcgis
 }) {
-
-  // ==========================================================
-  // ARCGIS MODULES
-  // ==========================================================
 
   const [
     ArcGISMap,
@@ -38,9 +27,17 @@ export async function createWorkforceMap({
     $arcgis.import('@arcgis/core/geometry/Point.js')
   ]);
 
-  // ==========================================================
-  // GRAPHICS LAYERS
-  // ==========================================================
+  const mapElement =
+    typeof container === 'string'
+      ? document.getElementById(container)
+      : container;
+
+  if (!mapElement) {
+    throw new Error('ArcGIS map container not found.');
+  }
+
+  // Clear preview content before initializing ArcGIS.
+  mapElement.replaceChildren();
 
   const buildingLayer = new GraphicsLayer({
     title: 'Relo Well Ranked Buildings'
@@ -49,10 +46,6 @@ export async function createWorkforceMap({
   const subjectLayer = new GraphicsLayer({
     title: 'Selected Subject Property'
   });
-
-  // ==========================================================
-  // MAP
-  // ==========================================================
 
   const map = new ArcGISMap({
     basemap: 'dark-gray-vector',
@@ -63,24 +56,33 @@ export async function createWorkforceMap({
   });
 
   const view = new MapView({
-    container,
+    container: mapElement,
     map,
-
-    // Initial geographic context only.
-    // This is not reapplied during rendering.
     center: [-77.0369, 38.9072],
     zoom: 11,
-
     constraints: {
       rotationEnabled: false
+    },
+    navigation: {
+      mouseWheelZoomEnabled: false,
+      browserTouchPanEnabled: false
     }
   });
 
   await view.when();
 
-  // ==========================================================
-  // VALIDATION
-  // ==========================================================
+  // Prevent browser wheel events from interacting
+  // with the map viewport.
+  const stopWheel = event => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  mapElement.addEventListener(
+    'wheel',
+    stopWheel,
+    { passive: false }
+  );
 
   function validCoordinates(record) {
     if (!record) return false;
@@ -89,6 +91,8 @@ export async function createWorkforceMap({
     const lat = Number(record.latitude);
 
     return (
+      record.longitude != null &&
+      record.latitude != null &&
       Number.isFinite(lon) &&
       Number.isFinite(lat) &&
       lon >= -180 &&
@@ -102,18 +106,11 @@ export async function createWorkforceMap({
     return new Point({
       longitude: Number(record.longitude),
       latitude: Number(record.latitude),
-      spatialReference: {
-        wkid: 4326
-      }
+      spatialReference: { wkid: 4326 }
     });
   }
 
-  // ==========================================================
-  // RANKED BUILDING GRAPHICS
-  // ==========================================================
-
   function createBuildingGraphic(building) {
-
     return new Graphic({
       geometry: makePoint(building),
 
@@ -123,7 +120,6 @@ export async function createWorkforceMap({
           building.address ||
           building.display ||
           'Ranked building',
-
         score:
           building.score == null
             ? 'Not available'
@@ -134,28 +130,15 @@ export async function createWorkforceMap({
         type: 'simple-marker',
         style: 'circle',
         size: 18,
-
-        color: [
-          93,
-          165,
-          238,
-          0.95
-        ],
-
+        color: [93, 165, 238, 0.95],
         outline: {
-          color: [
-            255,
-            255,
-            255,
-            1
-          ],
+          color: [255, 255, 255, 1],
           width: 1.5
         }
       },
 
       popupTemplate: {
         title: 'Relo Well Rank #{rank}',
-
         content:
           '<b>{address}</b>' +
           '<br>Relo Composite: {score}'
@@ -163,12 +146,7 @@ export async function createWorkforceMap({
     });
   }
 
-  // ==========================================================
-  // SUBJECT GRAPHIC
-  // ==========================================================
-
   function createSubjectGraphic(subject) {
-
     return new Graphic({
       geometry: makePoint(subject),
 
@@ -183,21 +161,9 @@ export async function createWorkforceMap({
         type: 'simple-marker',
         style: 'diamond',
         size: 23,
-
-        color: [
-          255,
-          223,
-          0,
-          1
-        ],
-
+        color: [255, 223, 0, 1],
         outline: {
-          color: [
-            27,
-            29,
-            44,
-            1
-          ],
+          color: [27, 29, 44, 1],
           width: 2
         }
       },
@@ -209,36 +175,23 @@ export async function createWorkforceMap({
     });
   }
 
-  // ==========================================================
-  // STABLE RENDER
-  // ==========================================================
-
   function render({
     buildings = [],
     subject = null,
     showBuildings = true
   } = {}) {
 
-    // Update graphics only.
-    // Do not alter center, zoom, or extent.
-
     buildingLayer.removeAll();
     subjectLayer.removeAll();
 
-    if (
-      showBuildings &&
-      Array.isArray(buildings)
-    ) {
-
+    if (showBuildings && Array.isArray(buildings)) {
       for (const building of buildings) {
-
         if (!validCoordinates(building)) {
           console.warn(
-            '[ChronOS Workforce] Invalid building coordinates:',
+            '[ChronOS] Invalid building coordinates:',
             building.rank,
             building.address
           );
-
           continue;
         }
 
@@ -248,72 +201,41 @@ export async function createWorkforceMap({
       }
     }
 
-    if (subject) {
-
-      if (validCoordinates(subject)) {
-
-        subjectLayer.add(
-          createSubjectGraphic(subject)
-        );
-
-      } else {
-
-        console.warn(
-          '[ChronOS Workforce] Subject coordinates unavailable:',
-          subject.subject ||
-          subject.address
-        );
-      }
+    if (subject && validCoordinates(subject)) {
+      subjectLayer.add(
+        createSubjectGraphic(subject)
+      );
     }
 
-    // IMPORTANT:
-    // No view.goTo() here.
-    // No view.center assignment.
-    // No view.zoom assignment.
-    // No view.extent assignment.
+    // CRITICAL:
+    // No goTo(), center, zoom, or extent changes.
   }
 
-  // ==========================================================
-  // OPTIONAL EXPLICIT NAVIGATION
-  // ==========================================================
-
   async function focusBuilding(building) {
-
-    if (!validCoordinates(building)) {
-      console.warn(
-        '[ChronOS Workforce] Cannot navigate to building:',
-        building
-      );
-
-      return;
-    }
+    if (!validCoordinates(building)) return;
 
     try {
-
-      await view.goTo({
-        center: [
-          Number(building.longitude),
-          Number(building.latitude)
-        ],
-        zoom: 13
-      }, {
-        duration: 400
-      });
-
+      await view.goTo(
+        {
+          center: [
+            Number(building.longitude),
+            Number(building.latitude)
+          ],
+          zoom: 13
+        },
+        {
+          animate: false
+        }
+      );
     } catch (error) {
-
       if (error?.name !== 'AbortError') {
         console.warn(
-          '[ChronOS Workforce] Building navigation:',
+          '[ChronOS] Navigation error:',
           error
         );
       }
     }
   }
-
-  // ==========================================================
-  // RETURN PUBLIC CONTROLLER
-  // ==========================================================
 
   return {
     map,
@@ -324,6 +246,10 @@ export async function createWorkforceMap({
     focusBuilding,
 
     destroy() {
+      mapElement.removeEventListener(
+        'wheel',
+        stopWheel
+      );
       view.destroy();
     }
   };
