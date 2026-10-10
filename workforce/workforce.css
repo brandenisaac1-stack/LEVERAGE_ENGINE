@@ -1,56 +1,455 @@
 
-/* =====================================================
-   CHRONOS WORKFORCE — MAP STABILITY OVERRIDES
-   ===================================================== */
+/* ============================================================
+   CHRONOS | WORKFORCE CONVERGENCE ENGINE
+   SAVILLS PRESENTATION SYSTEM
+   COMPLETE STYLESHEET
+   ============================================================ */
+
+:root {
+  --navy: #1B1D2C;
+  --navy-panel: #25273A;
+  --navy-deep: #101827;
+  --navy-input: #151E30;
+
+  --yellow: #FFDF00;
+  --white: #FFFFFF;
+  --steel: #D7DADE;
+  --muted: #AAB9CF;
+
+  --teal: #238291;
+  --teal-light: #6CA7B1;
+
+  --blue: #5DA5EE;
+  --blue-light: #8ABDF3;
+
+  --border: #39425B;
+  --border-light: #4B5672;
+
+  --font: Gotham, Arial, Helvetica, sans-serif;
+}
+
+/* ============================================================
+   GLOBAL
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
 
 html,
 body {
+  margin: 0;
+  padding: 0;
   width: 100%;
   min-height: 100%;
-  margin: 0;
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font);
   overflow-x: hidden;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 #app {
   width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--navy-deep);
+}
+
+/* ============================================================
+   TOP TOOLBAR
+   ============================================================ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  min-height: 58px;
+  padding: 10px 18px;
+
+  background: #151B2D;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.brand strong {
+  color: var(--yellow);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+}
+
+.brand span {
+  color: #C7D5EF;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.25px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
   min-width: 0;
 }
 
+.back-link {
+  color: var(--blue-light);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.back-link:hover {
+  color: var(--yellow);
+}
+
+.connection-status {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.primary {
+  background: var(--yellow);
+  color: #101827;
+  border: 1px solid var(--yellow);
+  border-radius: 5px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.primary:hover {
+  background: #FFE84B;
+}
+
+#logout {
+  background: transparent;
+  color: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+  padding: 9px 13px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   THREE-COLUMN WORKSPACE
+   ============================================================ */
+
 .workspace {
-  min-width: 0;
-  min-height: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(225px, 260px)
+    minmax(0, 1fr)
+    minmax(260px, 315px);
+
+  gap: 10px;
   align-items: stretch;
+
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+}
+
+.controls-panel,
+.map-panel,
+.insights-panel {
+  min-width: 0;
+
+  background: #202436;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.controls-panel {
+  padding: 14px;
 }
 
 .map-panel {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 14px;
+  overflow: hidden;
 }
 
-.map-toolbar,
-.map-footer,
-.map-panel > .panel-heading {
+.insights-panel {
+  padding: 14px;
+}
+
+/* ============================================================
+   PANEL HEADINGS
+   ============================================================ */
+
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+
+  background: #63C2D0;
+  color: #101827;
+
+  border-radius: 50%;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.panel-heading h2 {
+  margin: 0 0 5px;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.panel-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.secondary-heading {
+  margin-top: 25px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================
+   CLIENT ASSUMPTIONS
+   ============================================================ */
+
+.control-section {
+  padding: 11px 0 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.control-section > label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 9px;
+
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.control-section > label strong {
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.control-section select,
+.control-section input[type="number"] {
+  width: 100%;
+  min-width: 0;
+
+  background: var(--navy-input);
+  color: var(--white);
+
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+
+  padding: 10px 11px;
+  font-size: 12px;
+  outline: none;
+}
+
+.control-section select:focus,
+.control-section input[type="number"]:focus {
+  border-color: var(--blue);
+}
+
+.control-section select option {
+  background: var(--navy-input);
+  color: var(--white);
+}
+
+.subject-address {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   SLIDERS
+   ============================================================ */
+
+.control-section input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 12px 0 6px;
+
+  accent-color: #63C2D0;
+  cursor: pointer;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.dual-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.dual-inputs label {
+  display: block;
+  margin-bottom: 7px;
+
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.dual-inputs input {
+  width: 100%;
+}
+
+.secondary {
+  width: 100%;
+
+  margin-top: 15px;
+  padding: 10px;
+
+  background: var(--navy-input);
+  color: var(--white);
+
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.secondary:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+/* ============================================================
+   MAP TOOLBAR
+   ============================================================ */
+
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
-/* Give ArcGIS a fixed, predictable viewport. */
+.map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.map-toggle input {
+  accent-color: var(--yellow);
+  cursor: pointer;
+}
+
+/* ============================================================
+   ARCGIS MAP — STABLE VIEWPORT
+   ============================================================ */
+
 #map.map-container {
   position: relative;
   display: block;
-  flex: 0 0 auto;
+
+  flex: 0 0 620px;
+
   width: 100%;
   height: 620px;
   min-height: 0;
   max-height: 620px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #111B2D,
+      #20334A 55%,
+      #111B2D
+    );
+
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+
   overflow: hidden;
   overscroll-behavior: contain;
-  touch-action: none;
 }
 
-/* ArcGIS internal view must fill its parent. */
+/* ArcGIS fills the bounded viewport. */
+
 #map .esri-view,
 #map .esri-view-root {
   width: 100%;
@@ -59,22 +458,258 @@ body {
   max-height: 100%;
 }
 
-/* Keep map controls inside the central panel. */
 #map .esri-ui {
   max-width: 100%;
   max-height: 100%;
 }
 
-@media (max-width: 1100px) {
+.map-loading {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+
+  z-index: 5;
+  width: min(430px, calc(100% - 32px));
+
+  padding: 16px;
+
+  background: rgba(21, 27, 45, 0.96);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+}
+
+.map-loading h2 {
+  margin: 0 0 10px;
+
+  color: var(--yellow);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.map-loading p {
+  margin: 0;
+
+  color: var(--steel);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   MAP FOOTER AND LEGEND
+   ============================================================ */
+
+.map-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin-top: 10px;
+  flex-shrink: 0;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.subject {
+  background: var(--yellow);
+}
+
+.legend-dot.building {
+  background: var(--blue);
+}
+
+.legend-dot.talent {
+  background: var(--teal);
+}
+
+.legend-dot.isochrone {
+  background: #9D79D5;
+}
+
+#mapSource {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+/* ============================================================
+   LOCATION COMPARISON
+   ============================================================ */
+
+.ranked-buildings {
+  min-height: 145px;
+}
+
+.ranked-buildings > div {
+  transition: background 0.15s ease;
+}
+
+.ranked-buildings > div:hover {
+  background: rgba(93, 165, 238, 0.07);
+}
+
+.location-insights {
+  color: var(--steel);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.preview-badge {
+  display: inline-block;
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   WORKFLOW FOOTER
+   ============================================================ */
+
+.workflow {
+  margin: 0 10px 10px;
+  padding: 12px 15px;
+
+  background: #202436;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.workflow-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  margin-top: 13px;
+
+  color: var(--steel);
+  font-size: 11px;
+}
+
+.workflow-steps b {
+  color: var(--blue);
+  font-size: 16px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+  .workspace {
+    grid-template-columns:
+      minmax(210px, 240px)
+      minmax(0, 1fr)
+      minmax(235px, 270px);
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
   #map.map-container {
+    flex-basis: 550px;
+    height: 550px;
+    max-height: 550px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .controls-panel,
+  .map-panel,
+  .insights-panel {
+    width: 100%;
+  }
+
+  #map.map-container {
+    flex-basis: 500px;
     height: 500px;
     max-height: 500px;
   }
 }
 
 @media (max-width: 700px) {
+  .toolbar {
+    padding: 12px;
+  }
+
+  .brand {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .brand strong {
+    font-size: 21px;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .workspace {
+    padding: 7px;
+    gap: 7px;
+  }
+
+  .controls-panel,
+  .map-panel,
+  .insights-panel {
+    padding: 11px;
+  }
+
   #map.map-container {
+    flex-basis: 420px;
     height: 420px;
     max-height: 420px;
+  }
+
+  .workflow {
+    margin: 0 7px 7px;
   }
 }
