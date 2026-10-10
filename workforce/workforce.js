@@ -61,6 +61,7 @@ let liveLoaded = false;
 let loading = false;
 
 let selectedSubject = '';
+let subjectRecords = [];
 
 // ============================================================
 // UTILITIES
@@ -145,6 +146,7 @@ function selectedBuildings() {
 // SUBJECT PROPERTY
 // ============================================================
 
+
 function populateSubjects() {
   const select = $('subjectSelect');
 
@@ -152,19 +154,11 @@ function populateSubjects() {
 
   select.replaceChildren();
 
-  const subjects = [
-    ...new Set(
-      buildings
-        .map(b => String(b.subject || '').trim())
-        .filter(Boolean)
-    )
-  ];
-
-  if (!subjects.length) {
+  if (!subjectRecords.length) {
     select.appendChild(
       makeOption(
         '',
-        'Subject address unavailable'
+        'Subject address not published'
       )
     );
 
@@ -173,48 +167,57 @@ function populateSubjects() {
 
     setText(
       'subjectAddress',
-      'No published subject address'
+      'No subject property available'
     );
 
     return;
   }
 
-  subjects.forEach(subject => {
+  for (const subject of subjectRecords) {
     select.appendChild(
-      makeOption(subject, subject)
+      makeOption(
+        subject.address,
+        subject.address
+      )
     );
-  });
+  }
 
-  selectedSubject = subjects[0];
+  selectedSubject = subjectRecords[0].address;
 
   select.value = selectedSubject;
   select.disabled = false;
 
-  setText('subjectAddress', selectedSubject);
+  setText(
+    'subjectAddress',
+    selectedSubject
+  );
 }
+
 
 function currentSubject() {
   if (!selectedSubject) return null;
 
-  const record = buildings.find(
-    b => b.subject === selectedSubject
+  const subject = subjectRecords.find(
+    s => s.address === selectedSubject
   );
 
-  if (!record) return null;
+  if (!subject) return null;
 
   if (
-    !Number.isFinite(record.subjectLatitude) ||
-    !Number.isFinite(record.subjectLongitude)
+    !Number.isFinite(subject.latitude) ||
+    !Number.isFinite(subject.longitude)
   ) {
     return null;
   }
 
   return {
-    ...record,
-    latitude: record.subjectLatitude,
-    longitude: record.subjectLongitude
+    subject: subject.address,
+    address: subject.address,
+    latitude: subject.latitude,
+    longitude: subject.longitude
   };
 }
+
 
 // ============================================================
 // LOCATION INSIGHTS
@@ -413,11 +416,12 @@ async function loadLive() {
     );
 
     buildings = result.buildings;
+subjectRecords = result.subjects || [];
 
-    console.info(
-      'Relo Well field mapping:',
-      result.columns
-    );
+console.info(
+  'Relo Well field mapping:',
+  result.columns
+);
 
     console.info(
       'Tract fields:',
