@@ -1,15 +1,15 @@
 
 /*
  * ChronOS | Workforce Convergence Engine
- * Live ArcGIS Integration
+ * Live ArcGIS integration
  *
  * Independent of Lease Leverage Engine.
  *
- * Dependencies:
+ * Existing modules:
  *   workforce-data.js
  *   workforce-map.js
  *
- * No client secret is used in this browser application.
+ * No client secret is used.
  */
 
 import {
@@ -21,27 +21,23 @@ import {
   createWorkforceMap
 } from './workforce-map.js';
 
-const $ = id => document.getElementById(id);
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
-// ============================================================
-// ARCGIS CONFIGURATION
-// ============================================================
+const $ = id => document.getElementById(id);
 
 const CLIENT_ID = 's1njB7yKDBlf7REY';
 
 const PORTAL = 'https://savills-na.maps.arcgis.com';
 
-// Existing callback at the repository root.
-// The URL is absolute to avoid relative-path ambiguity.
+// Reuse the existing repository-root OAuth callback.
+// This must be an authorized redirect URI in ArcGIS.
 
 const CALLBACK_URL = new URL(
   '../oauth-callback.html',
   window.location.href
 ).href;
-
-// ============================================================
-// DEFAULT ASSUMPTIONS
-// ============================================================
 
 const DEFAULTS = {
   commuteMinutes: '45',
@@ -57,21 +53,17 @@ const DEFAULTS = {
 // ============================================================
 
 let buildings = [];
-
 let mapController = null;
-
 let identityManager = null;
 
 let authReady = false;
-
+let liveLoaded = false;
 let loading = false;
 
 let selectedSubject = '';
 
-let liveLoaded = false;
-
 // ============================================================
-// GENERAL HELPERS
+// UTILITIES
 // ============================================================
 
 function status(message) {
@@ -92,24 +84,23 @@ function setText(id, value) {
   }
 }
 
-function makeOption(value, label) {
-  const el = document.createElement('option');
-
-  el.value = value;
-  el.textContent = label;
-
-  return el;
-}
-
 function showError(error, prefix = 'ERROR') {
   console.error('[ChronOS Workforce]', error);
 
-  const message =
-    error?.message ||
-    String(error) ||
-    'Unknown error';
+  status(
+    `${prefix}: ${
+      error?.message || String(error)
+    }`
+  );
+}
 
-  status(`${prefix}: ${message}`);
+function makeOption(value, label) {
+  const option = document.createElement('option');
+
+  option.value = value;
+  option.textContent = label;
+
+  return option;
 }
 
 function setLoading(active) {
@@ -117,17 +108,17 @@ function setLoading(active) {
 
   const login = $('login');
 
-  if (login) {
-    login.disabled = active;
+  if (!login) return;
 
-    login.textContent = active
-      ? 'LOADING...'
-      : 'SIGN IN / LOAD LIVE DATA';
-  }
+  login.disabled = active;
+
+  login.textContent = active
+    ? 'LOADING...'
+    : 'SIGN IN / LOAD LIVE DATA';
 }
 
 // ============================================================
-// CONTROL VALUES
+// CONTROL LABELS
 // ============================================================
 
 function updateControlLabels() {
@@ -178,7 +169,6 @@ function populateSubjects() {
     );
 
     select.disabled = true;
-
     selectedSubject = '';
 
     setText(
@@ -189,22 +179,18 @@ function populateSubjects() {
     return;
   }
 
-  for (const subject of subjects) {
+  subjects.forEach(subject => {
     select.appendChild(
       makeOption(subject, subject)
     );
-  }
+  });
 
   selectedSubject = subjects[0];
 
   select.value = selectedSubject;
-
   select.disabled = false;
 
-  setText(
-    'subjectAddress',
-    selectedSubject
-  );
+  setText('subjectAddress', selectedSubject);
 }
 
 function currentSubject() {
@@ -228,98 +214,6 @@ function currentSubject() {
     latitude: record.subjectLatitude,
     longitude: record.subjectLongitude
   };
-}
-
-// ============================================================
-// BUILDING COMPARISON
-// ============================================================
-
-function renderRankings() {
-  const panel = $('rankedBuildings');
-
-  if (!panel) return;
-
-  panel.replaceChildren();
-
-  const subset = selectedBuildings();
-
-  if (!subset.length) {
-    const empty = document.createElement('p');
-
-    empty.className = 'empty-state';
-
-    empty.textContent =
-      'No eligible ranked buildings were returned.';
-
-    panel.appendChild(empty);
-
-    return;
-  }
-
-  for (const building of subset) {
-    const card = document.createElement('div');
-
-    card.style.cssText = [
-      'border-bottom:1px solid #39425b',
-      'padding:12px 0',
-      'cursor:pointer'
-    ].join(';');
-
-    const heading = document.createElement('div');
-
-    heading.style.cssText = [
-      'color:#8ABDF3',
-      'font-weight:700',
-      'font-size:13px'
-    ].join(';');
-
-    heading.textContent =
-      `#${building.rank}  ${
-        building.address ||
-        building.display ||
-        'Ranked building'
-      }`;
-
-    card.appendChild(heading);
-
-    if (building.score != null) {
-      const score = document.createElement('div');
-
-      score.style.cssText = [
-        'color:#D7DADE',
-        'font-size:12px',
-        'margin-top:5px'
-      ].join(';');
-
-      score.textContent =
-        `Relo composite: ${
-          Number(building.score).toFixed(1)
-        }`;
-
-      card.appendChild(score);
-    }
-
-    card.addEventListener('click', () => {
-      renderBuildingInsights(building);
-
-      if (mapController?.view) {
-        mapController.view.goTo({
-          center: [
-            building.longitude,
-            building.latitude
-          ],
-          zoom: 13
-        }).catch(error => {
-          console.warn(
-            'Map navigation interrupted',
-            error
-          );
-        });
-      }
-    });
-
-    panel.appendChild(card);
-  }
 }
 
 // ============================================================
@@ -372,7 +266,92 @@ function renderBuildingInsights(building) {
 }
 
 // ============================================================
-// MAP AND LIVE OUTPUTS
+// RANKED BUILDINGS
+// ============================================================
+
+function renderRankings() {
+  const panel = $('rankedBuildings');
+
+  if (!panel) return;
+
+  panel.replaceChildren();
+
+  const subset = selectedBuildings();
+
+  if (!subset.length) {
+    const empty = document.createElement('p');
+
+    empty.className = 'empty-state';
+
+    empty.textContent =
+      'No eligible ranked buildings were returned.';
+
+    panel.appendChild(empty);
+
+    return;
+  }
+
+  subset.forEach(building => {
+    const card = document.createElement('div');
+
+    card.style.cssText = [
+      'border-bottom:1px solid #39425b',
+      'padding:12px 0',
+      'cursor:pointer'
+    ].join(';');
+
+    const heading = document.createElement('div');
+
+    heading.style.cssText = [
+      'color:#8ABDF3',
+      'font-weight:700',
+      'font-size:13px'
+    ].join(';');
+
+    heading.textContent =
+      `#${building.rank}  ${
+        building.address ||
+        building.display ||
+        'Ranked building'
+      }`;
+
+    card.appendChild(heading);
+
+    if (building.score != null) {
+      const score = document.createElement('div');
+
+      score.style.cssText = [
+        'color:#D7DADE',
+        'font-size:12px',
+        'margin-top:5px'
+      ].join(';');
+
+      score.textContent =
+        `Relo composite: ${
+          Number(building.score).toFixed(1)
+        }`;
+
+      card.appendChild(score);
+    }
+
+    card.addEventListener('click', () => {
+      renderBuildingInsights(building);
+
+      mapController?.view.goTo({
+        center: [
+          building.longitude,
+          building.latitude
+        ],
+        zoom: 13
+      }).catch(() => {});
+    });
+
+    panel.appendChild(card);
+  });
+}
+
+// ============================================================
+// LIVE MAP RENDERING
 // ============================================================
 
 function renderLive() {
@@ -405,7 +384,7 @@ function renderLive() {
 }
 
 // ============================================================
-// LOAD LIVE DATA
+// LIVE ARCGIS DATA
 // ============================================================
 
 async function loadLive() {
@@ -413,9 +392,9 @@ async function loadLive() {
 
   setLoading(true);
 
-  status('CONNECTING TO SAVILLS ARCGIS...');
-
   try {
+    status('CONNECTING TO SAVILLS ARCGIS...');
+
     const FeatureLayer = await $arcgis.import(
       '@arcgis/core/layers/FeatureLayer.js'
     );
@@ -436,19 +415,19 @@ async function loadLive() {
     buildings = result.buildings;
 
     console.info(
-      'Relo Well published field mapping',
+      'Relo Well field mapping:',
       result.columns
     );
 
     console.info(
-      'Tract layer fields',
+      'Tract fields:',
       tractLayer.fields.map(f => f.name)
     );
 
     if (!buildings.length) {
       throw new Error(
         'Relo Well returned no eligible ranked ' +
-        'buildings with valid coordinates.'
+        'buildings with usable coordinates.'
       );
     }
 
@@ -486,7 +465,7 @@ async function loadLive() {
 }
 
 // ============================================================
-// ARCGIS AUTHENTICATION
+// ARCGIS OAUTH
 // ============================================================
 
 async function initializeAuthentication() {
@@ -506,7 +485,7 @@ async function initializeAuthentication() {
 
   identityManager = IdentityManager;
 
-  const oauthInfo = new OAuthInfo({
+  const info = new OAuthInfo({
     appId: CLIENT_ID,
     portalUrl: PORTAL,
     popup: true,
@@ -514,14 +493,12 @@ async function initializeAuthentication() {
     flowType: 'auto'
   });
 
-  identityManager.registerOAuthInfos([
-    oauthInfo
-  ]);
+  identityManager.registerOAuthInfos([info]);
 
   authReady = true;
 
   console.info(
-    'ChronOS Workforce OAuth callback:',
+    'Workforce OAuth callback:',
     CALLBACK_URL
   );
 
@@ -571,32 +548,29 @@ async function signIn() {
 // ============================================================
 
 function resetAssumptions() {
-  for (const [id, value] of Object.entries(DEFAULTS)) {
-    const element = $(id);
-
-    if (element) {
-      element.value = value;
+  Object.entries(DEFAULTS).forEach(
+    ([id, value]) => {
+      if ($(id)) {
+        $(id).value = value;
+      }
     }
-  }
+  );
 
-  for (const id of [
+  [
     'showTalent',
     'showIsochrones',
     'showBuildings'
-  ]) {
-    const element = $(id);
-
-    if (element) {
-      element.checked = true;
+  ].forEach(id => {
+    if ($(id)) {
+      $(id).checked = true;
     }
-  }
+  });
 
   if ($('showCompetitors')) {
     $('showCompetitors').checked = false;
   }
 
   updateControlLabels();
-
   renderLive();
 }
 
@@ -614,7 +588,6 @@ function wireEvents() {
     'click',
     () => {
       identityManager?.destroyCredentials();
-
       window.location.reload();
     }
   );
@@ -623,7 +596,6 @@ function wireEvents() {
     'change',
     event => {
       selectedSubject = event.target.value;
-
       renderLive();
     }
   );
@@ -638,18 +610,18 @@ function wireEvents() {
     renderLive
   );
 
-  for (const id of [
+  [
     'commuteMinutes',
     'competitorInfluence',
     'travelMode',
     'earningsMin',
     'earningsMax'
-  ]) {
+  ].forEach(id => {
     $(id)?.addEventListener(
       'input',
       updateControlLabels
     );
-  }
+  });
 
   $('resetAssumptions')?.addEventListener(
     'click',
@@ -669,10 +641,7 @@ function initialize() {
   status('WAITING FOR ARCGIS AUTHENTICATION');
 
   initializeAuthentication().catch(error => {
-    showError(
-      error,
-      'INITIALIZATION ERROR'
-    );
+    showError(error, 'INITIALIZATION ERROR');
   });
 }
 
