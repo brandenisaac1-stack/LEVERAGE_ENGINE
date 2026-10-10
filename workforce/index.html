@@ -8,12 +8,93 @@
 
   <title>ChronOS | Workforce Convergence Engine</title>
 
-  <script type="module" src="https://js.arcgis.com/5.1/"></script>
+  <script
+    type="module"
+    src="https://js.arcgis.com/5.1/"
+  ></script>
 
-  <link rel="stylesheet" href="./workforce.css?v=1">
+  <link
+    rel="stylesheet"
+    href="./workforce.css?v=20261010-map-stable"
+  >
+
+  <style>
+    /*
+     * Workforce Convergence map containment.
+     * This applies independently of external CSS.
+     */
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    #app {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .workspace {
+      min-width: 0;
+      align-items: stretch;
+    }
+
+    .map-panel {
+      min-width: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-panel > .panel-heading,
+    .map-toolbar,
+    .map-footer {
+      flex-shrink: 0;
+    }
+
+    #map.map-container {
+      position: relative;
+      display: block;
+      flex: 0 0 620px;
+      width: 100%;
+      height: 620px;
+      min-height: 0;
+      max-height: 620px;
+      overflow: hidden;
+      overscroll-behavior: contain;
+    }
+
+    #map .esri-view,
+    #map .esri-view-root {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    @media (max-width: 1100px) {
+      #map.map-container {
+        flex-basis: 500px;
+        height: 500px;
+        max-height: 500px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      #map.map-container {
+        flex-basis: 420px;
+        height: 420px;
+        max-height: 420px;
+      }
+    }
+  </style>
 </head>
 
 <body>
+
 <div id="app">
 
   <!-- HEADER -->
@@ -34,15 +115,26 @@
         LEASE LEVERAGE ↗
       </a>
 
-      <span id="connectionStatus" class="connection-status">
+      <span
+        id="connectionStatus"
+        class="connection-status"
+      >
         Waiting for live data
       </span>
 
-      <button id="login" class="primary" type="button">
+      <button
+        id="login"
+        class="primary"
+        type="button"
+      >
         SIGN IN / LOAD LIVE DATA
       </button>
 
-      <button id="logout" type="button" hidden>
+      <button
+        id="logout"
+        type="button"
+        hidden
+      >
         SIGN OUT
       </button>
 
@@ -60,7 +152,9 @@
         <span class="step-number">1</span>
         <div>
           <h2>CLIENT ASSUMPTIONS</h2>
-          <p>Define the workforce and location priorities.</p>
+          <p>
+            Define the workforce and location priorities.
+          </p>
         </div>
       </div>
 
@@ -70,13 +164,19 @@
           SUBJECT PROPERTY
         </label>
 
-        <select id="subjectSelect" disabled>
+        <select
+          id="subjectSelect"
+          disabled
+        >
           <option value="">
             Load subject properties
           </option>
         </select>
 
-        <div id="subjectAddress" class="subject-address">
+        <div
+          id="subjectAddress"
+          class="subject-address"
+        >
           No subject selected
         </div>
 
@@ -88,8 +188,13 @@
           TARGET INDUSTRY
         </label>
 
-        <select id="industrySelect" disabled>
-          <option value="">Load industries</option>
+        <select
+          id="industrySelect"
+          disabled
+        >
+          <option value="">
+            Load industries
+          </option>
         </select>
 
       </section>
@@ -100,8 +205,13 @@
           TARGET OCCUPATION
         </label>
 
-        <select id="occupationSelect" disabled>
-          <option value="">Load occupations</option>
+        <select
+          id="occupationSelect"
+          disabled
+        >
+          <option value="">
+            Load occupations
+          </option>
         </select>
 
       </section>
@@ -113,8 +223,12 @@
         </label>
 
         <select id="travelMode">
-          <option value="drive">Driving</option>
-          <option value="transit">Transit</option>
+          <option value="drive">
+            Driving
+          </option>
+          <option value="transit">
+            Transit
+          </option>
         </select>
 
       </section>
@@ -123,7 +237,9 @@
 
         <label for="commuteMinutes">
           MAXIMUM COMMUTE TIME
-          <strong id="commuteValue">45 MIN</strong>
+          <strong id="commuteValue">
+            45 MIN
+          </strong>
         </label>
 
         <input
@@ -152,8 +268,12 @@
         </label>
 
         <div class="dual-inputs">
+
           <div>
-            <label for="earningsMin">MINIMUM</label>
+            <label for="earningsMin">
+              MINIMUM
+            </label>
+
             <input
               id="earningsMin"
               type="number"
@@ -164,7 +284,10 @@
           </div>
 
           <div>
-            <label for="earningsMax">MAXIMUM</label>
+            <label for="earningsMax">
+              MAXIMUM
+            </label>
+
             <input
               id="earningsMax"
               type="number"
@@ -173,6 +296,7 @@
               value="120000"
             >
           </div>
+
         </div>
 
       </section>
@@ -181,7 +305,9 @@
 
         <label for="competitorInfluence">
           COMPETITOR INFLUENCE
-          <strong id="competitorValue">50%</strong>
+          <strong id="competitorValue">
+            50%
+          </strong>
         </label>
 
         <input
@@ -211,7 +337,11 @@
 
       </section>
 
-      <button id="resetAssumptions" class="secondary" type="button">
+      <button
+        id="resetAssumptions"
+        class="secondary"
+        type="button"
+      >
         RESET TO MODELED
       </button>
 
@@ -234,31 +364,57 @@
       <div class="map-toolbar">
 
         <label class="map-toggle">
-          <input id="showTalent" type="checkbox" checked>
+          <input
+            id="showTalent"
+            type="checkbox"
+            checked
+          >
           TALENT GEOGRAPHY
         </label>
 
         <label class="map-toggle">
-          <input id="showIsochrones" type="checkbox" checked>
+          <input
+            id="showIsochrones"
+            type="checkbox"
+            checked
+          >
           ISOCHRONES
         </label>
 
         <label class="map-toggle">
-          <input id="showBuildings" type="checkbox" checked>
+          <input
+            id="showBuildings"
+            type="checkbox"
+            checked
+          >
           RANKED BUILDINGS
         </label>
 
         <label class="map-toggle">
-          <input id="showCompetitors" type="checkbox">
+          <input
+            id="showCompetitors"
+            type="checkbox"
+          >
           COMPETITORS
         </label>
 
       </div>
 
-      <div id="map" class="map-container">
+      <!-- FIXED ARCGIS MAP VIEWPORT -->
+      <div
+        id="map"
+        class="map-container"
+        aria-label="Interactive Workforce Convergence Map"
+      >
 
-        <div id="mapLoading" class="map-loading">
-          <h2>WORKFORCE CONVERGENCE ENGINE</h2>
+        <div
+          id="mapLoading"
+          class="map-loading"
+        >
+          <h2>
+            WORKFORCE CONVERGENCE ENGINE
+          </h2>
+
           <p>
             Authenticate to load the approved building
             universe and geographic intelligence.
@@ -270,10 +426,25 @@
       <div class="map-footer">
 
         <div class="map-legend">
-          <span><i class="legend-dot subject"></i> SUBJECT</span>
-          <span><i class="legend-dot building"></i> RANKED BUILDING</span>
-          <span><i class="legend-dot talent"></i> TALENT GEOGRAPHY</span>
-          <span><i class="legend-dot isochrone"></i> ACCESSIBILITY</span>
+          <span>
+            <i class="legend-dot subject"></i>
+            SUBJECT
+          </span>
+
+          <span>
+            <i class="legend-dot building"></i>
+            RANKED BUILDING
+          </span>
+
+          <span>
+            <i class="legend-dot talent"></i>
+            TALENT GEOGRAPHY
+          </span>
+
+          <span>
+            <i class="legend-dot isochrone"></i>
+            ACCESSIBILITY
+          </span>
         </div>
 
         <span id="mapSource">
@@ -291,13 +462,19 @@
         <span class="step-number">3</span>
         <div>
           <h2>LOCATION COMPARISON</h2>
-          <p>Approved buildings and workforce alignment.</p>
+          <p>
+            Approved buildings and workforce alignment.
+          </p>
         </div>
       </div>
 
-      <div id="rankedBuildings" class="ranked-buildings">
+      <div
+        id="rankedBuildings"
+        class="ranked-buildings"
+      >
         <p class="empty-state">
-          Ranked building data will appear after authentication.
+          Ranked building data will appear
+          after authentication.
         </p>
       </div>
 
@@ -305,11 +482,16 @@
         <span class="step-number">4</span>
         <div>
           <h2>LOCATION INSIGHTS</h2>
-          <p>Understand what drives the comparison.</p>
+          <p>
+            Understand what drives the comparison.
+          </p>
         </div>
       </div>
 
-      <div id="locationInsights" class="location-insights">
+      <div
+        id="locationInsights"
+        class="location-insights"
+      >
         <p class="empty-state">
           Select a building to examine its workforce context.
         </p>
@@ -328,22 +510,45 @@
     </div>
 
     <div class="workflow-steps">
-      <span>Relo Well Building Universe</span>
+
+      <span>
+        Relo Well Building Universe
+      </span>
+
       <b>→</b>
-      <span>Subject &amp; Client Assumptions</span>
+
+      <span>
+        Subject &amp; Client Assumptions
+      </span>
+
       <b>→</b>
-      <span>Workforce Geography</span>
+
+      <span>
+        Workforce Geography
+      </span>
+
       <b>→</b>
-      <span>Travel-Time Accessibility</span>
+
+      <span>
+        Travel-Time Accessibility
+      </span>
+
       <b>→</b>
-      <span>Location Comparison</span>
+
+      <span>
+        Location Comparison
+      </span>
+
     </div>
 
   </footer>
 
 </div>
 
-<script type="module" src="./workforce.js?v=1"></script>
+<script
+  type="module"
+  src="./workforce.js?v=20261010-map-stable"
+></script>
 
 </body>
 </html>
