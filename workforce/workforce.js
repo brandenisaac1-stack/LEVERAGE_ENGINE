@@ -27,7 +27,7 @@ import {
 
 const $ = id => document.getElementById(id);
 
-const CLIENT_ID = 's1njB7yKDBlf7REY';
+const CLIENT_ID = 'HkPcxQmc1HwysD9F';
 
 const PORTAL = 'https://savills-na.maps.arcgis.com';
 
