@@ -1,170 +1,376 @@
 
- // ChronOS Workforce Convergence - live ArcGIS data access.
- // No client secret belongs in this browser module.
+/*
+ * ChronOS | Workforce Convergence
+ * LIVE RELO WELL DATA
+ *
+ * Subject addresses are retrieved independently
+ * of ranked candidate-building records.
+ *
+ * No client secret.
+ * No changes to existing rankings.
+ */
 
- export const SERVICES = Object.freeze({
-   relo: 'https://services.arcgis.com/5e8P2PHwGNSRUvq3/arcgis/rest/services/Relo_Well/FeatureServer/0',
-   tract: 'https://services.arcgis.com/5e8P2PHwGNSRUvq3/arcgis/rest/services/uniquejoin/FeatureServer/0'
- });
+export const SERVICES = Object.freeze({
+  relo:
+    'https://services.arcgis.com/5e8P2PHwGNSRUvq3/arcgis/rest/services/Relo_Well/FeatureServer/0',
 
- const field = (fields, candidates) => {
-   const byName = new Map(fields.map(f => [f.name.toLowerCase(), f.name]));
-   for (const candidate of candidates) {
-     const actual = byName.get(candidate.toLowerCase());
-     if (actual) return actual;
-   }
-   return null;
- };
+  tract:
+    'https://services.arcgis.com/5e8P2PHwGNSRUvq3/arcgis/rest/services/uniquejoin/FeatureServer/0'
+});
 
- const val = (a, name) => name ? a[name] : null;
+function findField(fields, candidates) {
+  const names = new Map(
+    fields.map(f => [
+      f.name.toLowerCase(),
+      f.name
+    ])
+  );
 
- const numeric = value =>
-   value == null || value === ''
-     ? null
-     : (Number.isFinite(+value) ? +value : null);
+  for (const candidate of candidates) {
+    const match = names.get(
+      candidate.toLowerCase()
+    );
 
- const text = value =>
-   value == null ? '' : String(value).trim();
+    if (match) return match;
+  }
 
- export async function connectWorkforceLayers(FeatureLayer) {
-   const reloLayer = new FeatureLayer({
-     url: SERVICES.relo,
-     outFields: ['*']
-   });
+  return null;
+}
 
-   const tractLayer = new FeatureLayer({
-     url: SERVICES.tract,
-     outFields: ['*']
-   });
+function value(attributes, fieldName) {
+  return fieldName
+    ? attributes[fieldName]
+    : null;
+}
 
-   await Promise.all([
-     reloLayer.load(),
-     tractLayer.load()
-   ]);
+function numberOrNull(raw) {
+  if (raw == null || raw === '') return null;
 
-   return {reloLayer, tractLayer};
- }
+  const n = Number(raw);
 
- export async function loadReloBuildings(reloLayer) {
-   const f = reloLayer.fields;
+  return Number.isFinite(n) ? n : null;
+}
 
-   const columns = {
-     rank: field(f, ['Relo_Final_Rank']),
-     eligible: field(f, ['Relo_Candidate_Eligible']),
-     address: field(f, [
-       'Building_Address',
-       'Building_Address_1',
-       'Property_Address',
-       'Address'
-     ]),
-     subject: field(f, [
-       'Subject_address',
-       'Subject_Address',
-       'SubjectAddress'
-     ]),
-     latitude: field(f, ['Latitude', 'Lat']),
-     longitude: field(f, ['Longitude', 'Lon', 'Long']),
-     subjectLatitude: field(f, [
-       'Subject_Latitude',
-       'Subject_Lat',
-       'SubjectLatitude'
-     ]),
-     subjectLongitude: field(f, [
-       'Subject_Longitude',
-       'Subject_Lon',
-       'SubjectLongitude'
-     ]),
-     score: field(f, ['Relo_Weighted_Composite']),
-     explanation: field(f, ['Relo_Ranking_Explanation']),
-     display: field(f, ['Column60']),
-     id: reloLayer.objectIdField
-   };
+function cleanText(raw) {
+  return raw == null
+    ? ''
+    : String(raw).trim();
+}
 
-   if (!columns.rank) {
-     throw new Error(
-       'Relo Well is accessible, but Relo_Final_Rank is not published.'
-     );
-   }
+function eligibleRecord(raw) {
+  if (raw == null || raw === '') return true;
 
-   const q = reloLayer.createQuery();
+  if (raw === true || raw === 1) return true;
 
-   q.where = `${columns.rank} IS NOT NULL`;
-   q.outFields = ['*'];
-   q.returnGeometry = true;
+  return [
+    '1',
+    'true',
+    'yes',
+    'eligible',
+    'selected'
+  ].includes(
+    String(raw).trim().toLowerCase()
+  );
+}
 
-   const features = await reloLayer.queryFeatures(q);
+export async function connectWorkforceLayers(
+  FeatureLayer
+) {
+  const reloLayer = new FeatureLayer({
+    url: SERVICES.relo,
+    outFields: ['*']
+  });
 
-   const buildings = features.features.map(feature => {
-     const a = feature.attributes;
-     const geom = feature.geometry;
+  const tractLayer = new FeatureLayer({
+    url: SERVICES.tract,
+    outFields: ['*']
+  });
 
-     const longitude =
-       numeric(val(a, columns.longitude)) ??
-       (geom?.type === 'point'
-         ? numeric(geom.longitude ?? geom.x)
-         : null);
+  await Promise.all([
+    reloLayer.load(),
+    tractLayer.load()
+  ]);
 
-     const latitude =
-       numeric(val(a, columns.latitude)) ??
-       (geom?.type === 'point'
-         ? numeric(geom.latitude ?? geom.y)
-         : null);
+  return {
+    reloLayer,
+    tractLayer
+  };
+}
 
-     return {
-       id: val(a, columns.id),
-       rank: numeric(val(a, columns.rank)),
-       eligible: val(a, columns.eligible),
-       address: text(val(a, columns.address)),
-       subject: text(val(a, columns.subject)),
-       longitude,
-       latitude,
-       subjectLatitude: numeric(
-         val(a, columns.subjectLatitude)
-       ),
-       subjectLongitude: numeric(
-         val(a, columns.subjectLongitude)
-       ),
-       score: numeric(val(a, columns.score)),
-       explanation: text(val(a, columns.explanation)),
-       display: text(val(a, columns.display))
-     };
-   }).filter(b =>
-     b.rank != null &&
-     b.rank >= 1 &&
-     Number.isFinite(b.latitude) &&
-     Number.isFinite(b.longitude)
-   );
+export async function loadReloBuildings(
+  reloLayer
+) {
+  const fields = reloLayer.fields;
 
-   const eligible = b => {
-     if (!columns.eligible) return true;
+  const columns = {
+    rank: findField(fields, [
+      'Relo_Final_Rank'
+    ]),
 
-     const v = b.eligible;
+    eligible: findField(fields, [
+      'Relo_Candidate_Eligible'
+    ]),
 
-     if (v == null || v === '') return true;
+    address: findField(fields, [
+      'Building_address',
+      'Building_Address',
+      'Relo_Display_Address',
+      'Property_Address',
+      'Address'
+    ]),
 
-     return (
-       v === true ||
-       v === 1 ||
-       [
-         'yes',
-         'true',
-         'eligible',
-         '1',
-         'selected'
-       ].includes(String(v).toLowerCase().trim())
-     );
-   };
+    display: findField(fields, [
+      'Relo_Display_Address',
+      'Column60'
+    ]),
 
-   const sorted = buildings
-     .filter(eligible)
-     .sort((a, b) =>
-       a.rank - b.rank ||
-       String(a.address).localeCompare(String(b.address))
-     );
+    subject: findField(fields, [
+      'Subject_Building_Address',
+      'Subject_Address',
+      'SubjectAddress',
+      'Subject_address'
+    ]),
 
-   return {
-     buildings: sorted,
-     columns,
-     totalReturned: features.features.length
-   };
- }
+    latitude: findField(fields, [
+      'Latitude',
+      'Lat'
+    ]),
+
+    longitude: findField(fields, [
+      'Longitude',
+      'Lon',
+      'Long'
+    ]),
+
+    subjectLatitude: findField(fields, [
+      'Subject_Latitude',
+      'Subject_Lat'
+    ]),
+
+    subjectLongitude: findField(fields, [
+      'Subject_Longitude',
+      'Subject_Lon'
+    ]),
+
+    score: findField(fields, [
+      'Relo_Weighted_Composite'
+    ]),
+
+    explanation: findField(fields, [
+      'Relo_Ranking_Explanation'
+    ]),
+
+    talentGravity: findField(fields, [
+      'Talent_Adjusted_Gravity_Convergence'
+    ]),
+
+    id: reloLayer.objectIdField
+  };
+
+  if (!columns.rank) {
+    throw new Error(
+      'Relo_Final_Rank is not published ' +
+      'in the ArcGIS Relo Well layer.'
+    );
+  }
+
+  // ======================================================
+  // QUERY 1: SUBJECT ADDRESSES
+  // ======================================================
+
+  const subjects = [];
+
+  if (columns.subject) {
+    const subjectQuery = reloLayer.createQuery();
+
+    subjectQuery.where =
+      `${columns.subject} IS NOT NULL`;
+
+    subjectQuery.outFields = [
+      columns.subject,
+      ...(columns.subjectLatitude
+        ? [columns.subjectLatitude]
+        : []),
+      ...(columns.subjectLongitude
+        ? [columns.subjectLongitude]
+        : [])
+    ];
+
+    subjectQuery.returnGeometry = false;
+
+    const subjectResult =
+      await reloLayer.queryFeatures(subjectQuery);
+
+    const seen = new Set();
+
+    for (const feature of subjectResult.features) {
+      const a = feature.attributes;
+
+      const address = cleanText(
+        value(a, columns.subject)
+      );
+
+      if (!address) continue;
+
+      const key = address.toUpperCase();
+
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+
+      subjects.push({
+        address,
+
+        latitude: numberOrNull(
+          value(a, columns.subjectLatitude)
+        ),
+
+        longitude: numberOrNull(
+          value(a, columns.subjectLongitude)
+        )
+      });
+    }
+  }
+
+  // ======================================================
+  // QUERY 2: RANKED CANDIDATE BUILDINGS
+  // ======================================================
+
+  const q = reloLayer.createQuery();
+
+  q.where =
+    `${columns.rank} IS NOT NULL`;
+
+  q.outFields = ['*'];
+
+  q.returnGeometry = true;
+
+  q.orderByFields = [
+    `${columns.rank} ASC`
+  ];
+
+  const result = await reloLayer.queryFeatures(q);
+
+  const buildings = [];
+
+  for (const feature of result.features) {
+    const a = feature.attributes;
+
+    const rank = numberOrNull(
+      value(a, columns.rank)
+    );
+
+    if (rank == null || rank < 1) continue;
+
+    if (
+      !eligibleRecord(
+        value(a, columns.eligible)
+      )
+    ) continue;
+
+    const geometry = feature.geometry;
+
+    // Published Latitude / Longitude are preferred.
+    // Point geometry is a fallback only when geographic
+    // coordinates can be read safely.
+
+    let latitude = numberOrNull(
+      value(a, columns.latitude)
+    );
+
+    let longitude = numberOrNull(
+      value(a, columns.longitude)
+    );
+
+    if (
+      (latitude == null || longitude == null) &&
+      geometry?.type === 'point' &&
+      geometry.spatialReference?.isWGS84
+    ) {
+      latitude = latitude ??
+        numberOrNull(geometry.y);
+
+      longitude = longitude ??
+        numberOrNull(geometry.x);
+    }
+
+    if (
+      latitude == null ||
+      longitude == null ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) continue;
+
+    buildings.push({
+      id: value(a, columns.id),
+
+      rank,
+
+      eligible: value(a, columns.eligible),
+
+      address: cleanText(
+        value(a, columns.address)
+      ),
+
+      display: cleanText(
+        value(a, columns.display)
+      ),
+
+      subject: cleanText(
+        value(a, columns.subject)
+      ),
+
+      latitude,
+      longitude,
+
+      subjectLatitude: numberOrNull(
+        value(a, columns.subjectLatitude)
+      ),
+
+      subjectLongitude: numberOrNull(
+        value(a, columns.subjectLongitude)
+      ),
+
+      score: numberOrNull(
+        value(a, columns.score)
+      ),
+
+      explanation: cleanText(
+        value(a, columns.explanation)
+      ),
+
+      talentGravity: numberOrNull(
+        value(a, columns.talentGravity)
+      )
+    });
+  }
+
+  buildings.sort((a, b) =>
+    a.rank - b.rank ||
+    a.address.localeCompare(b.address)
+  );
+
+  console.info(
+    '[ChronOS] Published Relo Well fields:',
+    columns
+  );
+
+  console.info(
+    '[ChronOS] Subject addresses:',
+    subjects
+  );
+
+  console.info(
+    '[ChronOS] Ranked buildings:',
+    buildings.length
+  );
+
+  return {
+    buildings,
+    subjects,
+    columns,
+    totalReturned: result.features.length
+  };
+}
