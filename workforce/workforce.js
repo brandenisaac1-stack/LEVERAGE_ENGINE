@@ -485,13 +485,12 @@ async function initializeAuthentication() {
 
   identityManager = IdentityManager;
 
-  const info = new OAuthInfo({
-    appId: CLIENT_ID,
-    portalUrl: PORTAL,
-    popup: true,
-    popupCallbackUrl: CALLBACK_URL,
-    flowType: 'auto'
-  });
+const info = new OAuthInfo({
+  appId: CLIENT_ID,
+  portalUrl: PORTAL,
+  popup: false,
+  flowType: 'auto'
+});
 
   identityManager.registerOAuthInfos([info]);
 
